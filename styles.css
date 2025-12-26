@@ -4,14 +4,21 @@ header { display: grid; gap: 10px; margin-bottom: 14px; }
 h1 { margin: 0; font-size: 22px; }
 
 .row { display: flex; gap: 10px; flex-wrap: wrap; }
-.topicRow { display: flex; gap: 10px; align-items: center; }
+
+.categoryRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
 
 input, button, textarea, select {
-  font-size: 16px; /* prevents iOS zoom */
+  font-size: 16px; /* prevents iOS zoom in most cases */
 }
 
 select {
   flex: 1;
+  min-width: 160px;
   padding: 12px;
   border-radius: 10px;
   border: 1px solid #2a2a2a;
@@ -28,6 +35,12 @@ input#itemInput {
   border: 1px solid #2a2a2a;
   background: #161617;
   color: #f2f2f2;
+}
+
+/* Bulletproof iOS: prevent focus zoom */
+#itemInput {
+  font-size: 18px !important;
+  line-height: 1.2;
 }
 
 button {
@@ -47,13 +60,18 @@ button.danger:hover { background: #341818; }
 ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
 
 li {
-  border: 1px solid #2a2a2a; border-radius: 12px; padding: 12px;
-  background: #141415; display: grid; grid-template-columns: 1fr auto; gap: 10px;
+  border: 1px solid #2a2a2a;
+  border-radius: 12px;
+  padding: 12px;
+  background: #141415;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
   align-items: center;
 }
 
 label { display: flex; gap: 10px; align-items: center; }
-input[type="checkbox"] { width: 20px; height: 20px; }
+input[type="checkbox"] { width: 22px; height: 22px; }
 
 .itemText { word-break: break-word; }
 .checked .itemText { text-decoration: line-through; opacity: 0.6; }
