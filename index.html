@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#111111" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>Checklist</title>
+</head>
+<body>
+  <header>
+    <h1>Checklist</h1>
+    <div class="row">
+      <button id="clearChecked" type="button">Clear checked</button>
+      <button id="clearAll" type="button" class="danger">Clear all</button>
+    </div>
+  </header>
+
+  <main>
+    <form id="itemForm">
+      <input id="itemInput" placeholder="Add item (e.g. milk)" autocomplete="off" />
+      <button type="submit">Add</button>
+    </form>
+
+    <ul id="list"></ul>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
