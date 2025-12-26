@@ -1,8 +1,9 @@
-const STORAGE_KEY = "checklist_categories_v1";
+const STORAGE_KEY = "od2_categories_v1";
 
 const form = document.getElementById("itemForm");
 const input = document.getElementById("itemInput");
 const list = document.getElementById("list");
+
 const clearCheckedBtn = document.getElementById("clearChecked");
 const clearAllBtn = document.getElementById("clearAll");
 
@@ -11,11 +12,22 @@ const newCategoryBtn = document.getElementById("newCategory");
 const editCategoryBtn = document.getElementById("editCategory");
 const deleteCategoryBtn = document.getElementById("deleteCategory");
 
+// Modal elements
+const modalOverlay = document.getElementById("modalOverlay");
+const modalTitle = document.getElementById("modalTitle");
+const modalName = document.getElementById("modalName");
+const modalShared = document.getElementById("modalShared");
+const modalClose = document.getElementById("modalClose");
+const modalCancel = document.getElementById("modalCancel");
+const modalSave = document.getElementById("modalSave");
+
+let modalMode = "create"; // "create" | "edit"
+
 function defaultState() {
   return {
     activeCategoryId: null,
     categories: [
-      { id: crypto.randomUUID(), name: "Bevásárlás", items: [] }
+      { id: crypto.randomUUID(), name: "Bevásárlás", shared: false, items: [] }
     ]
   };
 }
@@ -52,7 +64,7 @@ function renderCategories() {
   state.categories.forEach(c => {
     const opt = document.createElement("option");
     opt.value = c.id;
-    opt.textContent = c.name;
+    opt.textContent = c.shared ? `🔗 ${c.name}` : c.name;
     if (c.id === active.id) opt.selected = true;
     categorySelect.appendChild(opt);
   });
@@ -68,6 +80,7 @@ function renderList() {
     if (item.done) li.classList.add("checked");
 
     const label = document.createElement("label");
+    label.className = "itemLabel";
 
     const cb = document.createElement("input");
     cb.type = "checkbox";
@@ -105,35 +118,73 @@ function setActiveCategory(id) {
   renderList();
 }
 
-function createCategory() {
-  const name = prompt("Add new Category (e.g. Ovi, Azúr):");
-  if (!name) return;
-
-  const trimmed = name.trim();
-  if (!trimmed) return;
-
-  const state = loadState();
-  state.categories.unshift({ id: crypto.randomUUID(), name: trimmed, items: [] });
-  state.activeCategoryId = state.categories[0].id;
-  saveState(state);
-  renderAll();
-}
-
-function editCategory() {
+// ----- Modal helpers -----
+function openModal(mode) {
+  modalMode = mode;
   const state = loadState();
   const active = getActiveCategory(state);
 
-  const nextName = prompt("Rename Category:", active.name);
-  if (nextName === null) return;
+  if (mode === "create") {
+    modalTitle.textContent = "New Category";
+    modalName.value = "";
+    modalShared.checked = false; // default local
+  } else {
+    modalTitle.textContent = "Edit Category";
+    modalName.value = active.name;
+    modalShared.checked = !!active.shared;
+  }
 
-  const trimmed = nextName.trim();
-  if (!trimmed) return;
-
-  active.name = trimmed;
-  saveState(state);
-  renderCategories();
+  modalOverlay.classList.remove("hidden");
+  modalOverlay.setAttribute("aria-hidden", "false");
+  setTimeout(() => modalName.focus(), 50);
 }
 
+function closeModal() {
+  modalOverlay.classList.add("hidden");
+  modalOverlay.setAttribute("aria-hidden", "true");
+}
+
+function saveModal() {
+  const name = (modalName.value || "").trim();
+  if (!name) return;
+
+  const shared = !!modalShared.checked;
+  const state = loadState();
+  const active = getActiveCategory(state);
+
+  if (modalMode === "create") {
+    state.categories.unshift({
+      id: crypto.randomUUID(),
+      name,
+      shared,
+      items: []
+    });
+    state.activeCategoryId = state.categories[0].id;
+  } else {
+    active.name = name;
+    active.shared = shared;
+  }
+
+  saveState(state);
+  closeModal();
+  renderAll();
+}
+
+// Clicking outside modal closes it
+modalOverlay.addEventListener("click", (e) => {
+  if (e.target === modalOverlay) closeModal();
+});
+modalClose.addEventListener("click", closeModal);
+modalCancel.addEventListener("click", closeModal);
+modalSave.addEventListener("click", saveModal);
+
+// Enter key submits modal
+modalName.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") saveModal();
+  if (e.key === "Escape") closeModal();
+});
+
+// ----- CRUD category -----
 function deleteCategory() {
   const state = loadState();
   const active = getActiveCategory(state);
@@ -152,10 +203,10 @@ function deleteCategory() {
   renderAll();
 }
 
+// ----- Items -----
 function addItem(text) {
   const state = loadState();
   const cat = getActiveCategory(state);
-
   cat.items.unshift({ id: crypto.randomUUID(), text, done: false, createdAt: Date.now() });
   saveState(state);
   renderList();
@@ -195,6 +246,7 @@ function clearAll() {
   renderList();
 }
 
+// Events
 form.addEventListener("submit", (e) => {
   e.preventDefault();
   const value = input.value.trim();
@@ -205,8 +257,8 @@ form.addEventListener("submit", (e) => {
 });
 
 categorySelect.addEventListener("change", (e) => setActiveCategory(e.target.value));
-newCategoryBtn.addEventListener("click", createCategory);
-editCategoryBtn.addEventListener("click", editCategory);
+newCategoryBtn.addEventListener("click", () => openModal("create"));
+editCategoryBtn.addEventListener("click", () => openModal("edit"));
 deleteCategoryBtn.addEventListener("click", deleteCategory);
 
 clearCheckedBtn.addEventListener("click", clearChecked);

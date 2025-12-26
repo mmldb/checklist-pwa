@@ -6,22 +6,22 @@
   <meta name="theme-color" content="#111111" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
-  <title>Checklist</title>
+  <title>OD 2.0</title>
 </head>
 <body>
   <header>
-    <h1>Checklist</h1>
+    <h1>OD 2.0</h1>
 
-    <div class="categoryRow">
+    <div class="topRow">
       <select id="categorySelect" aria-label="Category"></select>
       <button id="newCategory" type="button">+ Category</button>
-      <button id="editCategory" type="button">Edit</button>
-      <button id="deleteCategory" type="button" class="danger">Delete</button>
     </div>
 
-    <div class="row">
-      <button id="clearChecked" type="button">Clear checked</button>
-      <button id="clearAll" type="button" class="danger">Clear all</button>
+    <div class="actionRow">
+      <button id="editCategory" type="button" class="smallBtn">Edit</button>
+      <button id="deleteCategory" type="button" class="smallBtn danger">Delete</button>
+      <button id="clearChecked" type="button" class="smallBtn">Clear checked</button>
+      <button id="clearAll" type="button" class="smallBtn danger">Clear all</button>
     </div>
   </header>
 
@@ -33,6 +33,44 @@
 
     <ul id="list"></ul>
   </main>
+
+  <!-- Modal -->
+  <div id="modalOverlay" class="modalOverlay hidden" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modalHeader">
+        <h2 id="modalTitle">Category</h2>
+        <button id="modalClose" type="button" class="iconBtn" aria-label="Close">✕</button>
+      </div>
+
+      <div class="modalBody">
+        <label class="field">
+          <span>Name</span>
+          <input id="modalName" type="text" placeholder="e.g. Ovi, Azúr" />
+        </label>
+
+        <div class="toggleRow">
+          <div>
+            <div class="toggleTitle">Type</div>
+            <div class="toggleHint">Shared sync comes in the next step (Supabase).</div>
+          </div>
+
+          <label class="switch">
+            <input id="modalShared" type="checkbox" />
+            <span class="slider"></span>
+          </label>
+          <div class="toggleLabel">
+            <span>Local</span>
+            <span class="strong">Shared</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modalFooter">
+        <button id="modalCancel" type="button">Cancel</button>
+        <button id="modalSave" type="button">Save</button>
+      </div>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>

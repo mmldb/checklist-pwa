@@ -1,24 +1,19 @@
 :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
-body { margin: 0; padding: 18px; background: #0f0f10; color: #f2f2f2; }
-header { display: grid; gap: 10px; margin-bottom: 14px; }
+body { margin: 0; padding: 16px; background: #0f0f10; color: #f2f2f2; }
+header { display: grid; gap: 10px; margin-bottom: 12px; }
 h1 { margin: 0; font-size: 22px; }
 
-.row { display: flex; gap: 10px; flex-wrap: wrap; }
+input, button, textarea, select { font-size: 16px; }
 
-.categoryRow {
-  display: flex;
+.topRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
   gap: 10px;
   align-items: center;
-  flex-wrap: wrap;
-}
-
-input, button, textarea, select {
-  font-size: 16px; /* prevents iOS zoom in most cases */
 }
 
 select {
-  flex: 1;
-  min-width: 160px;
+  width: 100%;
   padding: 12px;
   border-radius: 10px;
   border: 1px solid #2a2a2a;
@@ -26,20 +21,21 @@ select {
   color: #f2f2f2;
 }
 
-form { display: flex; gap: 10px; margin: 14px 0; align-items: center; }
-input#itemInput {
-  flex: 1;
+.actionRow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+form { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin: 12px 0; }
+#itemInput {
   min-width: 0;
   padding: 12px;
   border-radius: 10px;
   border: 1px solid #2a2a2a;
   background: #161617;
   color: #f2f2f2;
-}
-
-/* Bulletproof iOS: prevent focus zoom */
-#itemInput {
-  font-size: 18px !important;
+  font-size: 18px !important; /* bulletproof iOS no-zoom */
   line-height: 1.2;
 }
 
@@ -57,6 +53,8 @@ button:hover { background: #2b2b2b; }
 button.danger { border-color: #4a2222; background: #2a1414; }
 button.danger:hover { background: #341818; }
 
+.smallBtn { padding: 10px 10px; }
+
 ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
 
 li {
@@ -70,10 +68,101 @@ li {
   align-items: center;
 }
 
-label { display: flex; gap: 10px; align-items: center; }
+label.itemLabel { display: flex; gap: 10px; align-items: center; }
 input[type="checkbox"] { width: 22px; height: 22px; }
 
 .itemText { word-break: break-word; }
 .checked .itemText { text-decoration: line-through; opacity: 0.6; }
 
-.smallBtn { padding: 8px 10px; border-radius: 10px; }
+.iconBtn {
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+
+/* Modal */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  z-index: 9999;
+}
+
+.hidden { display: none; }
+
+.modal {
+  width: 100%;
+  max-width: 520px;
+  border: 1px solid #2a2a2a;
+  border-radius: 14px;
+  background: #121213;
+  box-shadow: 0 20px 80px rgba(0,0,0,0.55);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 14px 8px 14px;
+}
+
+.modalHeader h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.modalBody { padding: 12px 14px 6px 14px; display: grid; gap: 14px; }
+
+.field { display: grid; gap: 8px; }
+.field span { opacity: 0.85; font-size: 14px; }
+.field input {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #2a2a2a;
+  background: #161617;
+  color: #f2f2f2;
+  font-size: 18px !important;
+}
+
+.toggleRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.toggleTitle { font-size: 14px; opacity: 0.9; }
+.toggleHint { font-size: 12px; opacity: 0.6; margin-top: 4px; }
+
+.toggleLabel { display: grid; gap: 2px; font-size: 12px; opacity: 0.85; text-align: right; }
+.toggleLabel .strong { opacity: 1; font-weight: 600; }
+
+/* iOS-style switch */
+.switch { position: relative; display: inline-block; width: 48px; height: 28px; }
+.switch input { display:none; }
+.slider {
+  position: absolute; cursor: pointer; inset: 0;
+  background-color: #2b2b2b;
+  transition: .2s;
+  border-radius: 999px;
+  border: 1px solid #2a2a2a;
+}
+.slider:before {
+  position: absolute; content: "";
+  height: 22px; width: 22px;
+  left: 3px; top: 2.5px;
+  background-color: #f2f2f2;
+  transition: .2s;
+  border-radius: 999px;
+}
+.switch input:checked + .slider { background-color: #2b3a2b; }
+.switch input:checked + .slider:before { transform: translateX(19px); }
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 10px 14px 14px 14px;
+}
