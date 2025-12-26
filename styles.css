@@ -4,15 +4,40 @@ header { display: grid; gap: 10px; margin-bottom: 14px; }
 h1 { margin: 0; font-size: 22px; }
 
 .row { display: flex; gap: 10px; flex-wrap: wrap; }
+.topicRow { display: flex; gap: 10px; align-items: center; }
 
-form { display: flex; gap: 10px; margin: 14px 0; }
-input {
-  flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #2a2a2a;
-  background: #161617; color: #f2f2f2;
+input, button, textarea, select {
+  font-size: 16px; /* prevents iOS zoom */
 }
+
+select {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #2a2a2a;
+  background: #161617;
+  color: #f2f2f2;
+}
+
+form { display: flex; gap: 10px; margin: 14px 0; align-items: center; }
+input#itemInput {
+  flex: 1;
+  min-width: 0;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #2a2a2a;
+  background: #161617;
+  color: #f2f2f2;
+}
+
 button {
-  padding: 12px 14px; border-radius: 10px; border: 1px solid #2a2a2a;
-  background: #222; color: #f2f2f2; cursor: pointer;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #2a2a2a;
+  background: #222;
+  color: #f2f2f2;
+  cursor: pointer;
+  white-space: nowrap;
 }
 button:active { transform: scale(0.99); }
 button:hover { background: #2b2b2b; }
@@ -33,6 +58,4 @@ input[type="checkbox"] { width: 20px; height: 20px; }
 .itemText { word-break: break-word; }
 .checked .itemText { text-decoration: line-through; opacity: 0.6; }
 
-.smallBtn {
-  padding: 8px 10px; border-radius: 10px;
-}
+.smallBtn { padding: 8px 10px; border-radius: 10px; }
