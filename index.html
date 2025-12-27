@@ -17,7 +17,7 @@
       <button id="newCategory" type="button">+ Category</button>
     </div>
 
-    <div class="actionRow actionRow3">
+    <div class="actionRow actionRow3" id="checklistActions">
       <button id="editCategory" type="button" class="smallBtn">Edit</button>
       <button id="deleteCategory" type="button" class="smallBtn danger">Delete</button>
       <button id="clearChecked" type="button" class="smallBtn">Clear checked</button>
@@ -25,12 +25,30 @@
   </header>
 
   <main>
-    <form id="itemForm">
-      <input id="itemInput" placeholder="Add item (e.g. milk)" autocomplete="off" />
-      <button type="submit">Add</button>
-    </form>
+    <!-- Checklist UI -->
+    <section id="checklistView">
+      <form id="itemForm">
+        <input id="itemInput" placeholder="Add item (e.g. milk)" autocomplete="off" />
+        <button type="submit">Add</button>
+      </form>
 
-    <ul id="list"></ul>
+      <ul id="list"></ul>
+    </section>
+
+    <!-- Planner UI -->
+    <section id="plannerView" class="hidden">
+      <div class="plannerHeader">
+        <button id="plannerPrev" type="button" class="smallBtn">◀</button>
+        <div class="plannerTitleWrap">
+          <div id="plannerTitle" class="plannerTitle">This week</div>
+          <div id="plannerRange" class="plannerRange">--</div>
+        </div>
+        <button id="plannerToday" type="button" class="smallBtn">Today</button>
+        <button id="plannerNext" type="button" class="smallBtn">▶</button>
+      </div>
+
+      <div id="plannerDays" class="plannerDays"></div>
+    </section>
   </main>
 
   <!-- Modal -->
