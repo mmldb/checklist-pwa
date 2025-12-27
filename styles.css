@@ -1,15 +1,13 @@
 :root{
-  --bg: #08090b;
-  --panel: #0d0f12;
-  --panel2: #0b0c0e;
-  --stroke: rgba(255,255,255,.08);
-  --stroke2: rgba(255,255,255,.12);
+  --bg: #0b0c0e;
+  --panel: #111317;
+  --panel2: #0f1114;
+  --stroke: rgba(255,255,255,.10);
+  --stroke2: rgba(255,255,255,.18);
   --text: rgba(255,255,255,.92);
   --muted: rgba(255,255,255,.60);
-  --muted2: rgba(255,255,255,.42);
-  --shadow: 0 18px 70px rgba(0,0,0,.55);
-  --radius: 14px;
-  --radius2: 18px;
+  --muted2: rgba(255,255,255,.45);
+  --radius: 16px;
 }
 
 *{ box-sizing:border-box; }
@@ -17,10 +15,7 @@ html,body{ height:100%; }
 body{
   margin:0;
   padding:16px;
-  background:
-    radial-gradient(1200px 600px at 20% -10%, rgba(255,255,255,.06), transparent 60%),
-    radial-gradient(900px 500px at 110% 10%, rgba(255,255,255,.04), transparent 55%),
-    var(--bg);
+  background: var(--bg);
   color: var(--text);
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
 }
@@ -33,17 +28,13 @@ input, button, textarea, select { font-size: 16px; }
   margin-bottom: 12px;
 }
 
-.titleRow{
-  display:flex;
-  align-items:flex-end;
-  justify-content: space-between;
-}
+.titleRow{ display:flex; align-items:flex-end; justify-content: space-between; }
 h1{
   margin:0;
   font-size: 20px;
   letter-spacing: .2px;
-  font-weight: 700;
-  color: rgba(255,255,255,.90);
+  font-weight: 750;
+  color: rgba(255,255,255,.92);
 }
 
 .topRow{
@@ -53,37 +44,32 @@ h1{
   align-items:center;
 }
 
+/* High-contrast select (no transparency) */
 select{
   width:100%;
   padding: 12px 12px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   border: 1px solid var(--stroke);
-  background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+  background: var(--panel);
   color: var(--text);
   outline:none;
-  box-shadow: 0 10px 30px rgba(0,0,0,.25);
 }
 
-.actionRow{
-  display:grid;
-  gap:10px;
-}
-.actionRow3{
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
+.actionRow{ display:grid; gap:10px; }
+.actionRow3{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
 /* Buttons */
 button{
-  border-radius: 14px;
+  border-radius: var(--radius);
   border: 1px solid var(--stroke);
-  background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+  background: var(--panel);
   color: var(--text);
   cursor:pointer;
-  box-shadow: 0 10px 30px rgba(0,0,0,.25);
-  transition: transform .06s ease, border-color .12s ease, background .12s ease;
+  transition: transform .06s ease, border-color .12s ease, background .12s ease, opacity .12s ease;
 }
 button:hover{ border-color: var(--stroke2); }
 button:active{ transform: scale(.99); }
+button:disabled{ opacity: .45; cursor: not-allowed; }
 
 .plusBtn{
   width: 48px;
@@ -91,26 +77,28 @@ button:active{ transform: scale(.99); }
   display:grid;
   place-items:center;
   font-size: 22px;
-  font-weight: 600;
+  font-weight: 800;
+  background: var(--panel);
 }
 
 .chipBtn{
   padding: 10px 10px;
   font-size: 13px;
   letter-spacing: .1px;
-  color: rgba(255,255,255,.88);
+  color: rgba(255,255,255,.90);
+  background: var(--panel);
 }
 
 .primaryBtn{
   padding: 12px 14px;
-  font-weight: 650;
-  border-color: rgba(255,255,255,.14);
-  background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+  font-weight: 750;
+  border-color: rgba(255,255,255,.16);
+  background: #171a1f;
 }
 
 .danger{
-  border-color: rgba(255,80,80,.22);
-  background: linear-gradient(180deg, rgba(255,80,80,.08), rgba(255,80,80,.03));
+  border-color: rgba(255,80,80,.28);
+  background: #1a1212;
 }
 
 /* Add row */
@@ -124,17 +112,15 @@ button:active{ transform: scale(.99); }
 #itemInput{
   min-width:0;
   padding: 12px 12px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   border: 1px solid var(--stroke);
-  background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+  background: var(--panel2);
   color: var(--text);
   outline:none;
 
   /* iOS zoom prevention */
   font-size: 18px !important;
   line-height: 1.2;
-
-  box-shadow: 0 10px 30px rgba(0,0,0,.25);
 }
 
 ul{
@@ -147,10 +133,9 @@ ul{
 
 li{
   border: 1px solid var(--stroke);
-  border-radius: var(--radius2);
+  border-radius: var(--radius);
   padding: 12px;
-  background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
-  box-shadow: 0 12px 40px rgba(0,0,0,.28);
+  background: var(--panel2);
   display:grid;
   grid-template-columns: 1fr auto;
   gap: 10px;
@@ -166,12 +151,12 @@ label.itemLabel{
 input[type="checkbox"]{
   width: 22px;
   height: 22px;
-  accent-color: rgba(255,255,255,.85);
+  accent-color: rgba(255,255,255,.90);
 }
 
 .itemText{
   word-break: break-word;
-  color: rgba(255,255,255,.90);
+  color: rgba(255,255,255,.92);
 }
 .checked .itemText{
   text-decoration: line-through;
@@ -181,6 +166,7 @@ input[type="checkbox"]{
 .iconBtn{
   padding: 8px 10px;
   border-radius: 12px;
+  background: var(--panel);
 }
 
 .hidden{ display:none !important; }
@@ -189,8 +175,7 @@ input[type="checkbox"]{
 .modalOverlay{
   position:fixed;
   inset:0;
-  background: rgba(0,0,0,.62);
-  backdrop-filter: blur(10px);
+  background: rgba(0,0,0,.65);
   display:grid;
   place-items:center;
   padding:16px;
@@ -201,8 +186,7 @@ input[type="checkbox"]{
   max-width: 520px;
   border: 1px solid var(--stroke);
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
-  box-shadow: var(--shadow);
+  background: #0f1114;
 }
 .modalHeader{
   display:flex;
@@ -213,8 +197,7 @@ input[type="checkbox"]{
 .modalHeader h2{
   margin:0;
   font-size: 16px;
-  font-weight: 700;
-  color: rgba(255,255,255,.92);
+  font-weight: 800;
 }
 .modalBody{
   padding: 10px 14px 6px 14px;
@@ -231,12 +214,14 @@ input[type="checkbox"]{
 }
 .field input{
   padding: 12px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   border: 1px solid var(--stroke);
-  background: rgba(0,0,0,.20);
+  background: var(--panel);
   color: var(--text);
   outline:none;
-  font-size: 18px !important; /* iOS zoom prevention */
+
+  /* iOS zoom prevention */
+  font-size: 18px !important;
 }
 .toggleRow{
   display:grid;
@@ -247,13 +232,13 @@ input[type="checkbox"]{
 .toggleTitle{ font-size: 12px; color: var(--muted); }
 .toggleHint{ font-size: 11px; color: var(--muted2); margin-top: 4px; }
 .toggleLabel{ font-size: 12px; color: var(--muted); text-align:right; }
-.toggleLabel .strong{ color: rgba(255,255,255,.86); font-weight: 650; }
+.toggleLabel .strong{ color: rgba(255,255,255,.86); font-weight: 700; }
 
 .switch{ position: relative; display:inline-block; width: 48px; height: 28px; opacity: .45; }
 .switch input{ display:none; }
 .slider{
   position:absolute; inset:0;
-  background: rgba(255,255,255,.08);
+  background: rgba(255,255,255,.06);
   border: 1px solid var(--stroke);
   border-radius: 999px;
 }
@@ -286,28 +271,29 @@ input[type="checkbox"]{
   gap:2px;
 }
 .plannerTitle{
-  font-weight: 750;
+  font-weight: 850;
   font-size: 14px;
-  color: rgba(255,255,255,.88);
 }
 .plannerRange{
   font-size: 12px;
   color: var(--muted2);
 }
 
-.plannerDays{
+.plannerDays{ display:grid; gap:10px; }
+
+.dayCard{
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius);
+  background: var(--panel2);
+  padding: 12px;
   display:grid;
   gap:10px;
 }
 
-.dayCard{
-  border: 1px solid var(--stroke);
-  border-radius: var(--radius2);
-  background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
-  box-shadow: 0 12px 40px rgba(0,0,0,.28);
-  padding: 12px;
-  display:grid;
-  gap:10px;
+/* subtle today highlight */
+.dayCard.today{
+  border-color: rgba(255,255,255,.22);
+  outline: 1px solid rgba(255,255,255,.12);
 }
 
 .dayHeader{
@@ -317,28 +303,24 @@ input[type="checkbox"]{
   align-items: baseline;
 }
 
-.dayName{
-  font-weight: 750;
-  color: rgba(255,255,255,.88);
-}
-
+.dayName{ font-weight: 850; }
 .dayDate{
   font-size: 12px;
   color: var(--muted2);
   white-space: nowrap;
 }
 
-/* Single-line feel, auto-grows via JS */
+/* single-line feel + auto-grow handled in JS */
 .dayNotes{
   width: 100%;
   resize: none;
   overflow: hidden;
   min-height: 44px;
   padding: 12px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   border: 1px solid var(--stroke);
-  background: rgba(0,0,0,.20);
-  color: rgba(255,255,255,.90);
+  background: var(--panel);
+  color: rgba(255,255,255,.92);
   outline: none;
 
   /* iOS zoom prevention */

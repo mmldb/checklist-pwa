@@ -1,6 +1,6 @@
 // ===== Storage =====
 const STORAGE_KEY = "od2_state_v1";
-const PLANNER_KEY = "od2_planner_v1"; // planner notes store
+const PLANNER_KEY = "od2_planner_v1";
 const LEGACY_KEYS = [
   "od2_categories_v1",
   "checklist_categories_v1",
@@ -32,7 +32,7 @@ const plannerTitle = document.getElementById("plannerTitle");
 const plannerRange = document.getElementById("plannerRange");
 const plannerDays = document.getElementById("plannerDays");
 
-// Modal elements
+// Modal
 const modalOverlay = document.getElementById("modalOverlay");
 const modalTitle = document.getElementById("modalTitle");
 const modalName = document.getElementById("modalName");
@@ -41,21 +41,16 @@ const modalClose = document.getElementById("modalClose");
 const modalCancel = document.getElementById("modalCancel");
 const modalSave = document.getElementById("modalSave");
 
-let modalMode = "create"; // "create" | "edit"
-
-// Planner week offset (0 = current week)
+let modalMode = "create";
 let plannerWeekOffset = 0;
 
 function uuid() {
   if (crypto && typeof crypto.randomUUID === "function") return crypto.randomUUID();
   return "id_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2);
 }
+function safeParse(raw) { try { return JSON.parse(raw); } catch { return null; } }
 
-function safeParse(raw) {
-  try { return JSON.parse(raw); } catch { return null; }
-}
-
-// ---- Auto-grow textarea ----
+// Auto-grow textarea
 function autoGrow(el) {
   if (!el) return;
   el.style.height = "auto";
@@ -63,18 +58,18 @@ function autoGrow(el) {
 }
 
 function defaultState() {
+  // Start on first normal category so checklist "Add" works immediately
+  const firstNormalId = uuid();
   return {
-    activeCategoryId: PLANNER_ID,
+    activeCategoryId: firstNormalId,
     categories: [
-      { id: PLANNER_ID, name: "Planner", shared: false, items: [], locked: true },
-      { id: uuid(), name: "Bevásárlás", shared: false, items: [] }
+      { id: PLANNER_ID, name: "Ez a hét", shared: false, items: [], locked: true },
+      { id: firstNormalId, name: "Bevásárlás", shared: false, items: [] }
     ]
   };
 }
 
-function migrateLegacy(legacy) {
-  return legacy;
-}
+function migrateLegacy(legacy) { return legacy; }
 
 function normalizeState(state) {
   if (!state || typeof state !== "object") return null;
@@ -95,18 +90,26 @@ function normalizeState(state) {
     })).filter(it => it.text.trim().length > 0) : []
   }));
 
-  // Ensure Planner exists and is locked
+  // Ensure Planner exists + locked + name fixed
   const hasPlanner = categories.some(c => c.id === PLANNER_ID);
   if (!hasPlanner) {
-    categories.unshift({ id: PLANNER_ID, name: "Planner", shared: false, items: [], locked: true });
+    categories.unshift({ id: PLANNER_ID, name: "Ez a hét", shared: false, items: [], locked: true });
   } else {
-    categories = categories.map(c => c.id === PLANNER_ID ? { ...c, name: "Planner", locked: true } : c);
+    categories = categories.map(c => c.id === PLANNER_ID ? { ...c, name: "Ez a hét", locked: true } : c);
     categories.sort((a,b) => (a.id === PLANNER_ID ? -1 : b.id === PLANNER_ID ? 1 : 0));
   }
 
+  // Choose active category safely:
+  // - if saved active is valid, use it
+  // - else prefer first NON-planner category (so checklist works)
   const activeId = state.activeCategoryId;
-  const activeCategoryId =
-    (activeId && categories.some(c => c.id === activeId)) ? activeId : PLANNER_ID;
+  const hasActive = activeId && categories.some(c => c.id === activeId);
+  let activeCategoryId = hasActive ? activeId : null;
+
+  if (!activeCategoryId) {
+    const firstNormal = categories.find(c => c.id !== PLANNER_ID);
+    activeCategoryId = firstNormal ? firstNormal.id : PLANNER_ID;
+  }
 
   return { activeCategoryId, categories };
 }
@@ -137,11 +140,8 @@ function loadState() {
 }
 
 function saveState(state) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch (e) {
-    console.warn("localStorage save failed", e);
-  }
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  catch (e) { console.warn("localStorage save failed", e); }
 }
 
 function getActiveCategory(state) {
@@ -160,14 +160,12 @@ function savePlannerStore(store) {
   localStorage.setItem(PLANNER_KEY, JSON.stringify(store));
 }
 
-// yyyy-mm-dd
 function formatISODate(d) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
-
 function formatNiceDate(d) {
   const dd = String(d.getDate()).padStart(2, "0");
   const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -184,7 +182,6 @@ function getMonday(d) {
   date.setDate(date.getDate() + diff);
   return date;
 }
-
 function addDays(date, n) {
   const d = new Date(date);
   d.setDate(d.getDate() + n);
@@ -193,11 +190,13 @@ function addDays(date, n) {
 
 function renderPlanner() {
   const today = new Date();
+  const todayISO = formatISODate(today);
+
   const baseMonday = getMonday(today);
   const monday = addDays(baseMonday, plannerWeekOffset * 7);
   const sunday = addDays(monday, 6);
 
-  plannerTitle.textContent = (plannerWeekOffset === 0) ? "Aktuális hét" : "Hét";
+  plannerTitle.textContent = (plannerWeekOffset === 0) ? "Ez a hét" : "Hét";
   plannerRange.textContent = `${formatNiceDate(monday)} -- ${formatNiceDate(sunday)}`;
 
   const store = loadPlannerStore();
@@ -211,6 +210,7 @@ function renderPlanner() {
 
     const card = document.createElement("div");
     card.className = "dayCard";
+    if (iso === todayISO) card.classList.add("today");
 
     const header = document.createElement("div");
     header.className = "dayHeader";
@@ -229,10 +229,10 @@ function renderPlanner() {
     const textarea = document.createElement("textarea");
     textarea.className = "dayNotes";
     textarea.placeholder = "Jegyzet…";
-    textarea.rows = 1; // single-line feel (auto-grows)
+    textarea.rows = 1;
     textarea.value = store[iso] || "";
 
-    // initial auto-grow after it’s in DOM
+    // auto-grow initial
     setTimeout(() => autoGrow(textarea), 0);
 
     textarea.addEventListener("input", () => {
@@ -257,7 +257,7 @@ function renderCategories() {
   state.categories.forEach(c => {
     const opt = document.createElement("option");
     opt.value = c.id;
-    opt.textContent = (c.id === PLANNER_ID) ? "🗓 Planner" : c.name;
+    opt.textContent = (c.id === PLANNER_ID) ? "🗓 Ez a hét" : c.name;
     if (c.id === active.id) opt.selected = true;
     categorySelect.appendChild(opt);
   });
@@ -290,7 +290,7 @@ function renderList() {
     const del = document.createElement("button");
     del.type = "button";
     del.className = "chipBtn";
-    del.textContent = "Töröl";
+    del.textContent = "❌ Töröl";
     del.addEventListener("click", () => deleteItem(item.id));
 
     li.appendChild(label);
@@ -308,6 +308,7 @@ function setViewForActiveCategory() {
   plannerView.classList.toggle("hidden", !isPlanner);
   checklistActions.classList.toggle("hidden", isPlanner);
 
+  // Enable/disable category actions appropriately
   editCategoryBtn.disabled = isPlanner;
   deleteCategoryBtn.disabled = isPlanner;
 
@@ -390,7 +391,10 @@ function setActiveCategory(id) {
   const state = loadState();
   state.activeCategoryId = id;
   saveState(state);
-  plannerWeekOffset = 0; // reset to current week when switching
+
+  // switching to planner feels best at current week
+  plannerWeekOffset = 0;
+
   renderAll();
 }
 
@@ -409,7 +413,11 @@ function deleteCategory() {
   if (!ok) return;
 
   state.categories = state.categories.filter(c => c.id !== active.id);
-  state.activeCategoryId = PLANNER_ID;
+
+  // go to first normal category (not planner) so checklist stays usable
+  const firstNormal = state.categories.find(c => c.id !== PLANNER_ID) || state.categories[0];
+  state.activeCategoryId = firstNormal.id;
+
   saveState(state);
   renderAll();
 }
@@ -418,7 +426,11 @@ function deleteCategory() {
 function addItem(text) {
   const state = loadState();
   const cat = getActiveCategory(state);
-  if (cat.id === PLANNER_ID) return;
+
+  if (cat.id === PLANNER_ID) {
+    alert("Checklist elemhez válassz egy kategóriát (nem a Planner-t).");
+    return;
+  }
 
   cat.items.unshift({ id: uuid(), text, done: false, createdAt: Date.now() });
   saveState(state);
@@ -468,7 +480,6 @@ categorySelect.addEventListener("change", (e) => setActiveCategory(e.target.valu
 newCategoryBtn.addEventListener("click", () => openModal("create"));
 editCategoryBtn.addEventListener("click", () => openModal("edit"));
 deleteCategoryBtn.addEventListener("click", deleteCategory);
-
 clearCheckedBtn.addEventListener("click", clearChecked);
 
 // Planner nav
@@ -479,11 +490,8 @@ plannerToday.addEventListener("click", () => { plannerWeekOffset = 0; renderPlan
 // Offline (service worker)
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
-    try {
-      await navigator.serviceWorker.register("./sw.js");
-    } catch (e) {
-      console.warn("SW registration failed", e);
-    }
+    try { await navigator.serviceWorker.register("./sw.js"); }
+    catch (e) { console.warn("SW registration failed", e); }
   });
 }
 
