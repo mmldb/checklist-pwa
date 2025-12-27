@@ -1,19 +1,19 @@
 :root{
-  --bg: #0b0c0e;
-  --panel: #111317;
-  --panel2: #0f1114;
+  --bg: #090A0C;
+  --panel: #0F1115;
+  --panel2: #0C0E12;
   --stroke: rgba(255,255,255,.10);
   --stroke2: rgba(255,255,255,.18);
   --text: rgba(255,255,255,.92);
-  --muted: rgba(255,255,255,.60);
+  --muted: rgba(255,255,255,.62);
   --muted2: rgba(255,255,255,.45);
 
-  /* accents */
-  --accent: #f3b27a;       /* pastel orange */
-  --deepGreen: #1f6b4f;    /* deep green for checkbox */
+  --radius: 12px;
+  --tight: 6px;
 
-  /* tighter + less round */
-  --radius: 10px;
+  /* For controls */
+  --accent: #F3B27A;   /* pastel orange */
+  --deepGreen: #1f6b4f;
 }
 
 *{ box-sizing:border-box; }
@@ -26,24 +26,24 @@ body{
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
 }
 
+/* iOS zoom prevention */
 input, button, textarea, select { font-size: 16px; }
 
 .appHeader{
   display:grid;
-  gap:8px;
+  gap:10px;
   margin-bottom: 10px;
 }
 
 .titleRow{ display:flex; align-items:flex-end; justify-content: space-between; }
 h1{
   margin:0;
-  font-size: 20px;
+  font-size: 22px;
   letter-spacing: .2px;
-  font-weight: 800;
-  color: rgba(255,255,255,.92);
+  font-weight: 900;
+  color: rgba(255,255,255,.95);
 }
 
-/* Top row */
 .topRow{
   display:grid;
   grid-template-columns: 1fr 56px;
@@ -64,7 +64,6 @@ select{
 .actionRow{ display:grid; gap:8px; }
 .actionRow3{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
-/* Buttons */
 button{
   border-radius: var(--radius);
   border: 1px solid var(--stroke);
@@ -81,34 +80,33 @@ button:disabled{ opacity: .45; cursor: not-allowed; }
   width: 56px;
   height: 40px;
   display:grid;
-  place-items:center;  /* centered */
+  place-items:center;
   font-size: 22px;
   font-weight: 900;
   background: var(--panel);
   position: relative;
 }
 .plusBtn::after{
-  /* tiny accent dot like a "design detail" */
   content:"";
   position:absolute;
   right:10px; top:10px;
   width:6px; height:6px;
   border-radius: 999px;
   background: var(--accent);
-  opacity: .9;
+  opacity: .95;
 }
 
 .chipBtn{
   padding: 10px 0;
-  font-size: 16px; /* emoji-only buttons look better a bit larger */
+  font-size: 16px; /* emoji only */
   line-height: 1;
 }
 
 .primaryBtn{
   padding: 11px 14px;
-  font-weight: 800;
+  font-weight: 900;
   border-color: rgba(255,255,255,.14);
-  background: #171a1f;
+  background: #151821;
   position: relative;
 }
 .primaryBtn::after{
@@ -124,6 +122,15 @@ button:disabled{ opacity: .45; cursor: not-allowed; }
 .danger{
   border-color: rgba(255,80,80,.26);
   background: #171012;
+}
+
+/* Wider planner arrows */
+.navBtn{
+  width: 64px;
+  height: 44px;
+  font-size: 18px;
+  font-weight: 900;
+  border-radius: 14px;
 }
 
 /* Add row */
@@ -142,9 +149,7 @@ button:disabled{ opacity: .45; cursor: not-allowed; }
   background: var(--panel2);
   color: var(--text);
   outline:none;
-
-  /* iOS zoom prevention */
-  font-size: 18px !important;
+  font-size: 18px !important; /* iOS zoom prevention */
   line-height: 1.2;
 }
 
@@ -153,19 +158,33 @@ ul{
   padding:0;
   margin:0;
   display:grid;
-  gap:6px; /* tighter */
+  gap: var(--tight);
 }
 
-/* Flat cards (no gradients) */
+/* BOLD CARD vibe (flat) */
 li{
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: var(--radius);
-  padding: 10px;
-  background: #0f1114;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 16px; /* a touch bigger like refs */
+  padding: 12px;
+  background: #111317;
   display:grid;
   grid-template-columns: 1fr auto;
-  gap: 8px;
+  gap: 10px;
   align-items:center;
+  position: relative;
+  overflow:hidden;
+}
+
+/* subtle "stack" line like ref */
+li::before{
+  content:"";
+  position:absolute;
+  left:0; top:0;
+  height:100%;
+  width:6px;
+  background: rgba(0,0,0,.18);
+  mix-blend-mode: multiply;
+  opacity: .35;
 }
 
 /* Item label */
@@ -178,12 +197,14 @@ label.itemLabel{
 input[type="checkbox"]{
   width: 22px;
   height: 22px;
-  accent-color: var(--deepGreen); /* deep green tick */
+  accent-color: var(--deepGreen);
 }
 
 .itemText{
   word-break: break-word;
-  color: rgba(255,255,255,.92);
+  color: rgba(0,0,0,.88);         /* on bright cards */
+  font-weight: 850;
+  letter-spacing: .1px;
 }
 .checked .itemText{
   text-decoration: line-through;
@@ -194,12 +215,23 @@ input[type="checkbox"]{
 .listDelBtn{
   padding: 10px 12px;
   font-size: 13px;
-  background: #111317;
+  font-weight: 800;
+  background: rgba(0,0,0,.18);
+  border: 1px solid rgba(0,0,0,.12);
+  color: rgba(0,0,0,.85);
 }
 
-/* Modal */
+/* When a card is dark, these help (JS sets data-contrast) */
+li[data-contrast="light"] .itemText{ color: rgba(255,255,255,.92); }
+li[data-contrast="light"] .listDelBtn{
+  background: rgba(255,255,255,.10);
+  border-color: rgba(255,255,255,.12);
+  color: rgba(255,255,255,.92);
+}
+
 .hidden{ display:none !important; }
 
+/* Modal */
 .modalOverlay{
   position:fixed;
   inset:0;
@@ -213,7 +245,7 @@ input[type="checkbox"]{
   width:100%;
   max-width: 520px;
   border: 1px solid var(--stroke);
-  border-radius: 14px;
+  border-radius: 16px;
   background: #0f1114;
 }
 .modalHeader{
@@ -225,11 +257,11 @@ input[type="checkbox"]{
 .modalHeader h2{
   margin:0;
   font-size: 16px;
-  font-weight: 850;
+  font-weight: 900;
 }
 .iconBtn{
   padding: 8px 10px;
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--panel);
 }
 
@@ -265,7 +297,7 @@ input[type="checkbox"]{
 .toggleTitle{ font-size: 12px; color: var(--muted); }
 .toggleHint{ font-size: 11px; color: var(--muted2); margin-top: 4px; }
 .toggleLabel{ font-size: 12px; color: var(--muted); text-align:right; }
-.toggleLabel .strong{ color: rgba(255,255,255,.86); font-weight: 800; }
+.toggleLabel .strong{ color: rgba(255,255,255,.86); font-weight: 900; }
 
 .switch{ position: relative; display:inline-block; width: 48px; height: 28px; opacity: .45; }
 .switch input{ display:none; }
@@ -305,29 +337,30 @@ input[type="checkbox"]{
   gap:2px;
 }
 .plannerTitle{
-  font-weight: 900;
+  font-weight: 950;
   font-size: 14px;
+  letter-spacing: .2px;
 }
 .plannerRange{
   font-size: 12px;
   color: var(--muted2);
 }
 
-.plannerDays{ display:grid; gap:6px; }
+.plannerDays{ display:grid; gap: var(--tight); }
 
 .dayCard{
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: var(--radius);
-  background: var(--panel2);
-  padding: 10px;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 16px;
+  background: #111317;
+  padding: 12px;
   display:grid;
   gap:8px;
 }
 
-/* more prominent today */
+/* Prominent today */
 .dayCard.today{
-  border-color: rgba(243,178,122,.55);
-  box-shadow: 0 0 0 1px rgba(243,178,122,.25) inset;
+  border-color: rgba(243,178,122,.70);
+  box-shadow: 0 0 0 2px rgba(243,178,122,.18) inset;
 }
 
 .dayHeader{
@@ -336,7 +369,7 @@ input[type="checkbox"]{
   gap:10px;
   align-items: baseline;
 }
-.dayName{ font-weight: 900; }
+.dayName{ font-weight: 950; }
 .dayDate{
   font-size: 12px;
   color: var(--muted2);
@@ -349,13 +382,12 @@ input[type="checkbox"]{
   overflow: hidden;
   min-height: 40px;
   padding: 10px 12px;
-  border-radius: var(--radius);
+  border-radius: 12px;
   border: 1px solid rgba(255,255,255,.10);
-  background: var(--panel);
+  background: #0f1115;
   color: rgba(255,255,255,.92);
   outline: none;
 
-  /* iOS zoom prevention */
   font-size: 18px;
   line-height: 1.25;
 }

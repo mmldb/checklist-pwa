@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="theme-color" content="#0b0c0e" />
+  <meta name="theme-color" content="#090A0C" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
   <title>OD Jegyzetek 2.0</title>
@@ -40,7 +40,7 @@
     <!-- Planner UI -->
     <section id="plannerView" class="hidden">
       <div class="plannerHeader">
-        <button id="plannerPrev" type="button" class="chipBtn">◀</button>
+        <button id="plannerPrev" type="button" class="navBtn" aria-label="Előző hét">◀</button>
 
         <div class="plannerTitleWrap">
           <div id="plannerTitle" class="plannerTitle">Ez a hét</div>
@@ -48,7 +48,7 @@
         </div>
 
         <button id="plannerToday" type="button" class="chipBtn">Ma</button>
-        <button id="plannerNext" type="button" class="chipBtn">▶</button>
+        <button id="plannerNext" type="button" class="navBtn" aria-label="Következő hét">▶</button>
       </div>
 
       <div id="plannerDays" class="plannerDays"></div>

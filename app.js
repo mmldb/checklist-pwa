@@ -50,13 +50,27 @@ function autoGrow(el) {
   el.style.height = el.scrollHeight + "px";
 }
 
-// Random green shades for new checklist cards (subtle)
-function randomGreenShade() {
-  // HSL: green hues with low saturation for "muted" green cards
-  const h = 140 + Math.floor(Math.random() * 25);     // 140..164
-  const s = 18 + Math.floor(Math.random() * 14);      // 18..31
-  const l = 14 + Math.floor(Math.random() * 8);       // 14..21 (dark)
-  return `hsl(${h} ${s}% ${l}%)`;
+/**
+ * Color palette inspired by refs (bold blocks),
+ * but works on black background.
+ * We store as "bg|contrast" where contrast is "light" or "dark"
+ * (meaning text should be light or dark).
+ */
+const CARD_PALETTE = [
+  { bg: "#E7E0CF", contrast: "dark" }, // warm paper
+  { bg: "#A9C7BD", contrast: "dark" }, // minty teal
+  { bg: "#D8C6A6", contrast: "dark" }, // sand
+  { bg: "#F2D8A7", contrast: "dark" }, // soft yellow
+  { bg: "#F3B27A", contrast: "dark" }, // pastel orange
+  { bg: "#E08B7A", contrast: "dark" }, // clay
+  { bg: "#B3A6F3", contrast: "dark" }, // lilac
+  { bg: "#1F6B4F", contrast: "light" }, // deep green
+  { bg: "#2B2F3A", contrast: "light" }  // graphite
+];
+
+function pickCardColor() {
+  const p = CARD_PALETTE[Math.floor(Math.random() * CARD_PALETTE.length)];
+  return `${p.bg}|${p.contrast}`;
 }
 
 function defaultState() {
@@ -85,12 +99,10 @@ function normalizeState(state) {
       text: typeof it?.text === "string" ? it.text : "",
       done: !!it?.done,
       createdAt: typeof it?.createdAt === "number" ? it.createdAt : Date.now(),
-      // color per item card
       color: typeof it?.color === "string" ? it.color : null
     })).filter(it => it.text.trim().length > 0) : []
   }));
 
-  // Ensure planner exists + locked
   const hasPlanner = categories.some(c => c.id === PLANNER_ID);
   if (!hasPlanner) {
     categories.unshift({ id: PLANNER_ID, name: "Ez a hét", shared: false, items: [], locked: true });
@@ -99,7 +111,6 @@ function normalizeState(state) {
     categories.sort((a,b) => (a.id === PLANNER_ID ? -1 : b.id === PLANNER_ID ? 1 : 0));
   }
 
-  // Active category: keep if valid else first normal
   const activeId = state.activeCategoryId;
   const hasActive = activeId && categories.some(c => c.id === activeId);
   let activeCategoryId = hasActive ? activeId : null;
@@ -169,6 +180,14 @@ function addDays(date, n) {
   return d;
 }
 
+function plannerLabelFromOffset(off) {
+  if (off === 0) return "Ez a hét";
+  if (off === 1) return "Jövő hét";
+  if (off === -1) return "Múlt hét";
+  if (off > 1) return `${off}. hét előre`;
+  return `${Math.abs(off)}. hét vissza`;
+}
+
 function renderPlanner() {
   const today = new Date();
   const todayISO = formatISODate(today);
@@ -177,7 +196,7 @@ function renderPlanner() {
   const monday = addDays(baseMonday, plannerWeekOffset * 7);
   const sunday = addDays(monday, 6);
 
-  plannerTitle.textContent = "Ez a hét";
+  plannerTitle.textContent = plannerLabelFromOffset(plannerWeekOffset);
   plannerRange.textContent = `${formatNiceDate(monday)} -- ${formatNiceDate(sunday)}`;
 
   const store = loadPlannerStore();
@@ -251,8 +270,11 @@ function renderList() {
     const li = document.createElement("li");
     if (item.done) li.classList.add("checked");
 
-    // apply random-ish green background if present
-    if (item.color) li.style.background = item.color;
+    if (item.color) {
+      const [bg, contrast] = item.color.split("|");
+      li.style.background = bg;
+      li.dataset.contrast = contrast || "dark";
+    }
 
     const label = document.createElement("label");
     label.className = "itemLabel";
@@ -272,7 +294,7 @@ function renderList() {
     const del = document.createElement("button");
     del.type = "button";
     del.className = "chipBtn listDelBtn";
-    del.textContent = "Delete"; // no ❌ emoji
+    del.textContent = "Delete"; // no emoji
     del.addEventListener("click", () => deleteItem(item.id));
 
     li.appendChild(label);
@@ -402,12 +424,13 @@ function addItem(text) {
     return;
   }
 
+  // assign a bold palette color (inspired by refs)
   cat.items.unshift({
     id: uuid(),
     text,
     done: false,
     createdAt: Date.now(),
-    color: randomGreenShade()
+    color: pickCardColor()
   });
 
   saveState(state);
