@@ -8,12 +8,14 @@
   --muted: rgba(255,255,255,.62);
   --muted2: rgba(255,255,255,.45);
 
-  --radius: 12px;
-  --tight: 6px;
+  /* sharper edges */
+  --radius: 4px;
 
-  /* For controls */
-  --accent: #F3B27A;   /* pastel orange */
+  /* deep green for checkbox tick */
   --deepGreen: #1f6b4f;
+
+  /* consistent control height */
+  --controlH: 44px;
 }
 
 *{ box-sizing:border-box; }
@@ -26,7 +28,6 @@ body{
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
 }
 
-/* iOS zoom prevention */
 input, button, textarea, select { font-size: 16px; }
 
 .appHeader{
@@ -38,12 +39,13 @@ input, button, textarea, select { font-size: 16px; }
 .titleRow{ display:flex; align-items:flex-end; justify-content: space-between; }
 h1{
   margin:0;
-  font-size: 22px;
-  letter-spacing: .2px;
-  font-weight: 900;
-  color: rgba(255,255,255,.95);
+  font-size: 20px;
+  letter-spacing: .1px;
+  font-weight: 500; /* regular */
+  color: rgba(255,255,255,.92);
 }
 
+/* Top row */
 .topRow{
   display:grid;
   grid-template-columns: 1fr 56px;
@@ -53,7 +55,8 @@ h1{
 
 select{
   width:100%;
-  padding: 10px 12px;
+  height: var(--controlH);
+  padding: 0 12px;
   border-radius: var(--radius);
   border: 1px solid var(--stroke);
   background: var(--panel);
@@ -61,9 +64,11 @@ select{
   outline:none;
 }
 
+/* Actions row */
 .actionRow{ display:grid; gap:8px; }
 .actionRow3{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
+/* Buttons */
 button{
   border-radius: var(--radius);
   border: 1px solid var(--stroke);
@@ -78,45 +83,27 @@ button:disabled{ opacity: .45; cursor: not-allowed; }
 
 .plusBtn{
   width: 56px;
-  height: 40px;
+  height: var(--controlH);
   display:grid;
   place-items:center;
   font-size: 22px;
-  font-weight: 900;
+  font-weight: 700;
   background: var(--panel);
-  position: relative;
-}
-.plusBtn::after{
-  content:"";
-  position:absolute;
-  right:10px; top:10px;
-  width:6px; height:6px;
-  border-radius: 999px;
-  background: var(--accent);
-  opacity: .95;
 }
 
 .chipBtn{
-  padding: 10px 0;
-  font-size: 16px; /* emoji only */
+  height: var(--controlH);
+  padding: 0;
+  font-size: 16px;
   line-height: 1;
 }
 
 .primaryBtn{
-  padding: 11px 14px;
-  font-weight: 900;
+  height: var(--controlH);
+  padding: 0 14px;
+  font-weight: 700;
   border-color: rgba(255,255,255,.14);
   background: #151821;
-  position: relative;
-}
-.primaryBtn::after{
-  content:"";
-  display:inline-block;
-  width:8px; height:8px;
-  margin-left:10px;
-  border-radius:999px;
-  background: var(--accent);
-  vertical-align: middle;
 }
 
 .danger{
@@ -124,13 +111,12 @@ button:disabled{ opacity: .45; cursor: not-allowed; }
   background: #171012;
 }
 
-/* Wider planner arrows */
+/* Planner arrows: wide tap targets */
 .navBtn{
-  width: 64px;
-  height: 44px;
+  width: 72px;
+  height: var(--controlH);
   font-size: 18px;
-  font-weight: 900;
-  border-radius: 14px;
+  font-weight: 700;
 }
 
 /* Add row */
@@ -143,30 +129,33 @@ button:disabled{ opacity: .45; cursor: not-allowed; }
 
 #itemInput{
   min-width:0;
-  padding: 11px 12px;
+  height: var(--controlH);
+  padding: 0 12px;
   border-radius: var(--radius);
   border: 1px solid var(--stroke);
   background: var(--panel2);
   color: var(--text);
   outline:none;
-  font-size: 18px !important; /* iOS zoom prevention */
+
+  /* iOS zoom prevention */
+  font-size: 18px !important;
   line-height: 1.2;
 }
 
+/* ZERO GAP lists */
 ul{
   list-style:none;
   padding:0;
   margin:0;
   display:grid;
-  gap: var(--tight);
+  gap: 0;
 }
 
-/* BOLD CARD vibe (flat) */
+/* Flat bold card blocks (touching) */
 li{
-  border: 1px solid rgba(255,255,255,.06);
-  border-radius: 16px; /* a touch bigger like refs */
+  border: 1px solid rgba(0,0,0,.10);
+  border-radius: 0;          /* sharp edges */
   padding: 12px;
-  background: #111317;
   display:grid;
   grid-template-columns: 1fr auto;
   gap: 10px;
@@ -175,16 +164,9 @@ li{
   overflow:hidden;
 }
 
-/* subtle "stack" line like ref */
-li::before{
-  content:"";
-  position:absolute;
-  left:0; top:0;
-  height:100%;
-  width:6px;
-  background: rgba(0,0,0,.18);
-  mix-blend-mode: multiply;
-  opacity: .35;
+/* hairline separators since gap is 0 */
+li + li{
+  border-top: 1px solid rgba(0,0,0,.12);
 }
 
 /* Item label */
@@ -200,28 +182,31 @@ input[type="checkbox"]{
   accent-color: var(--deepGreen);
 }
 
+/* On bright cards: dark text */
 .itemText{
   word-break: break-word;
-  color: rgba(0,0,0,.88);         /* on bright cards */
-  font-weight: 850;
+  font-weight: 800;
   letter-spacing: .1px;
+  color: rgba(0,0,0,.88);
 }
 .checked .itemText{
   text-decoration: line-through;
   opacity: .55;
 }
 
-/* delete button in list = text only */
+/* Delete button on card */
 .listDelBtn{
-  padding: 10px 12px;
+  height: 36px;
+  padding: 0 12px;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   background: rgba(0,0,0,.18);
   border: 1px solid rgba(0,0,0,.12);
   color: rgba(0,0,0,.85);
+  border-radius: var(--radius);
 }
 
-/* When a card is dark, these help (JS sets data-contrast) */
+/* When a card is dark, swap to light text */
 li[data-contrast="light"] .itemText{ color: rgba(255,255,255,.92); }
 li[data-contrast="light"] .listDelBtn{
   background: rgba(255,255,255,.10);
@@ -245,7 +230,7 @@ li[data-contrast="light"] .listDelBtn{
   width:100%;
   max-width: 520px;
   border: 1px solid var(--stroke);
-  border-radius: 16px;
+  border-radius: var(--radius);
   background: #0f1114;
 }
 .modalHeader{
@@ -257,11 +242,11 @@ li[data-contrast="light"] .listDelBtn{
 .modalHeader h2{
   margin:0;
   font-size: 16px;
-  font-weight: 900;
+  font-weight: 700;
 }
 .iconBtn{
   padding: 8px 10px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--panel);
 }
 
@@ -279,7 +264,8 @@ li[data-contrast="light"] .listDelBtn{
   color: var(--muted);
 }
 .field input{
-  padding: 11px 12px;
+  height: var(--controlH);
+  padding: 0 12px;
   border-radius: var(--radius);
   border: 1px solid var(--stroke);
   background: var(--panel);
@@ -297,7 +283,7 @@ li[data-contrast="light"] .listDelBtn{
 .toggleTitle{ font-size: 12px; color: var(--muted); }
 .toggleHint{ font-size: 11px; color: var(--muted2); margin-top: 4px; }
 .toggleLabel{ font-size: 12px; color: var(--muted); text-align:right; }
-.toggleLabel .strong{ color: rgba(255,255,255,.86); font-weight: 900; }
+.toggleLabel .strong{ color: rgba(255,255,255,.86); font-weight: 700; }
 
 .switch{ position: relative; display:inline-block; width: 48px; height: 28px; opacity: .45; }
 .switch input{ display:none; }
@@ -337,30 +323,37 @@ li[data-contrast="light"] .listDelBtn{
   gap:2px;
 }
 .plannerTitle{
-  font-weight: 950;
+  font-weight: 700;
   font-size: 14px;
-  letter-spacing: .2px;
+  letter-spacing: .1px;
 }
 .plannerRange{
   font-size: 12px;
   color: var(--muted2);
 }
 
-.plannerDays{ display:grid; gap: var(--tight); }
+/* ZERO GAP between days */
+.plannerDays{
+  display:grid;
+  gap: 0;
+}
 
 .dayCard{
   border: 1px solid rgba(255,255,255,.06);
-  border-radius: 16px;
+  border-radius: 0;
   background: #111317;
   padding: 12px;
   display:grid;
   gap:8px;
 }
+.dayCard + .dayCard{
+  border-top: 1px solid rgba(255,255,255,.10);
+}
 
-/* Prominent today */
 .dayCard.today{
-  border-color: rgba(243,178,122,.70);
-  box-shadow: 0 0 0 2px rgba(243,178,122,.18) inset;
+  /* more prominent */
+  border-left: 3px solid rgba(255,255,255,.28);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.10) inset;
 }
 
 .dayHeader{
@@ -369,7 +362,7 @@ li[data-contrast="light"] .listDelBtn{
   gap:10px;
   align-items: baseline;
 }
-.dayName{ font-weight: 950; }
+.dayName{ font-weight: 800; }
 .dayDate{
   font-size: 12px;
   color: var(--muted2);
@@ -382,7 +375,7 @@ li[data-contrast="light"] .listDelBtn{
   overflow: hidden;
   min-height: 40px;
   padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   border: 1px solid rgba(255,255,255,.10);
   background: #0f1115;
   color: rgba(255,255,255,.92);

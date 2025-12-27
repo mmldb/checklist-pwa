@@ -51,14 +51,12 @@ function autoGrow(el) {
 }
 
 /**
- * Color palette inspired by refs (bold blocks),
- * but works on black background.
- * We store as "bg|contrast" where contrast is "light" or "dark"
- * (meaning text should be light or dark).
+ * Harmonized pastel palette (your direction).
+ * Stored as "bg|contrast" where contrast controls text color.
  */
 const CARD_PALETTE = [
   { bg: "#E7E0CF", contrast: "dark" }, // warm paper
-  { bg: "#A9C7BD", contrast: "dark" }, // minty teal
+  { bg: "#A9C7BD", contrast: "dark" }, // mint teal
   { bg: "#D8C6A6", contrast: "dark" }, // sand
   { bg: "#F2D8A7", contrast: "dark" }, // soft yellow
   { bg: "#F3B27A", contrast: "dark" }, // pastel orange
@@ -103,6 +101,7 @@ function normalizeState(state) {
     })).filter(it => it.text.trim().length > 0) : []
   }));
 
+  // Ensure planner exists + locked + name fixed
   const hasPlanner = categories.some(c => c.id === PLANNER_ID);
   if (!hasPlanner) {
     categories.unshift({ id: PLANNER_ID, name: "Ez a hét", shared: false, items: [], locked: true });
@@ -111,6 +110,7 @@ function normalizeState(state) {
     categories.sort((a,b) => (a.id === PLANNER_ID ? -1 : b.id === PLANNER_ID ? 1 : 0));
   }
 
+  // Active category: keep if valid else first normal
   const activeId = state.activeCategoryId;
   const hasActive = activeId && categories.some(c => c.id === activeId);
   let activeCategoryId = hasActive ? activeId : null;
@@ -294,7 +294,7 @@ function renderList() {
     const del = document.createElement("button");
     del.type = "button";
     del.className = "chipBtn listDelBtn";
-    del.textContent = "Delete"; // no emoji
+    del.textContent = "Delete";
     del.addEventListener("click", () => deleteItem(item.id));
 
     li.appendChild(label);
@@ -424,7 +424,6 @@ function addItem(text) {
     return;
   }
 
-  // assign a bold palette color (inspired by refs)
   cat.items.unshift({
     id: uuid(),
     text,
