@@ -1,6 +1,6 @@
 // ===== Storage =====
 const STORAGE_KEY = "od2_state_v1";
-const PLANNER_KEY = "od2_planner_v1"; // separate store for planner notes
+const PLANNER_KEY = "od2_planner_v1"; // planner notes store
 const LEGACY_KEYS = [
   "od2_categories_v1",
   "checklist_categories_v1",
@@ -43,7 +43,7 @@ const modalSave = document.getElementById("modalSave");
 
 let modalMode = "create"; // "create" | "edit"
 
-// Planner week offset (0 = current week, -1 previous, +1 next)
+// Planner week offset (0 = current week)
 let plannerWeekOffset = 0;
 
 function uuid() {
@@ -55,13 +55,18 @@ function safeParse(raw) {
   try { return JSON.parse(raw); } catch { return null; }
 }
 
+// ---- Auto-grow textarea ----
+function autoGrow(el) {
+  if (!el) return;
+  el.style.height = "auto";
+  el.style.height = el.scrollHeight + "px";
+}
+
 function defaultState() {
   return {
-    activeCategoryId: PLANNER_ID, // start on Planner
+    activeCategoryId: PLANNER_ID,
     categories: [
-      // Locked planner pseudo-category (always exists)
       { id: PLANNER_ID, name: "Planner", shared: false, items: [], locked: true },
-      // A normal example category
       { id: uuid(), name: "Bevásárlás", shared: false, items: [] }
     ]
   };
@@ -79,7 +84,7 @@ function normalizeState(state) {
 
   let categories = cats.map((c) => ({
     id: (c && c.id) ? c.id : uuid(),
-    name: (c && typeof c.name === "string" && c.name.trim()) ? c.name.trim() : "Category",
+    name: (c && typeof c.name === "string" && c.name.trim()) ? c.name.trim() : "Kategória",
     shared: false,
     locked: !!c.locked,
     items: Array.isArray(c.items) ? c.items.map((it) => ({
@@ -96,7 +101,6 @@ function normalizeState(state) {
     categories.unshift({ id: PLANNER_ID, name: "Planner", shared: false, items: [], locked: true });
   } else {
     categories = categories.map(c => c.id === PLANNER_ID ? { ...c, name: "Planner", locked: true } : c);
-    // Prefer planner at top
     categories.sort((a,b) => (a.id === PLANNER_ID ? -1 : b.id === PLANNER_ID ? 1 : 0));
   }
 
@@ -187,23 +191,19 @@ function addDays(date, n) {
   return d;
 }
 
-function sameISOWeekAsToday(offset) {
-  return offset === 0;
-}
-
 function renderPlanner() {
   const today = new Date();
   const baseMonday = getMonday(today);
   const monday = addDays(baseMonday, plannerWeekOffset * 7);
   const sunday = addDays(monday, 6);
 
-  plannerTitle.textContent = sameISOWeekAsToday(plannerWeekOffset) ? "This week" : "Week";
+  plannerTitle.textContent = (plannerWeekOffset === 0) ? "Aktuális hét" : "Hét";
   plannerRange.textContent = `${formatNiceDate(monday)} -- ${formatNiceDate(sunday)}`;
 
   const store = loadPlannerStore();
   plannerDays.innerHTML = "";
 
-  const dayNames = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+  const dayNamesHU = ["Hétfő","Kedd","Szerda","Csütörtök","Péntek","Szombat","Vasárnap"];
 
   for (let i = 0; i < 7; i++) {
     const date = addDays(monday, i);
@@ -217,7 +217,7 @@ function renderPlanner() {
 
     const left = document.createElement("div");
     left.className = "dayName";
-    left.textContent = dayNames[i];
+    left.textContent = dayNamesHU[i];
 
     const right = document.createElement("div");
     right.className = "dayDate";
@@ -228,10 +228,15 @@ function renderPlanner() {
 
     const textarea = document.createElement("textarea");
     textarea.className = "dayNotes";
-    textarea.placeholder = "Notes…";
+    textarea.placeholder = "Jegyzet…";
+    textarea.rows = 1; // single-line feel (auto-grows)
     textarea.value = store[iso] || "";
 
+    // initial auto-grow after it’s in DOM
+    setTimeout(() => autoGrow(textarea), 0);
+
     textarea.addEventListener("input", () => {
+      autoGrow(textarea);
       const s = loadPlannerStore();
       s[iso] = textarea.value;
       savePlannerStore(s);
@@ -284,8 +289,8 @@ function renderList() {
 
     const del = document.createElement("button");
     del.type = "button";
-    del.className = "smallBtn";
-    del.textContent = "Delete";
+    del.className = "chipBtn";
+    del.textContent = "Töröl";
     del.addEventListener("click", () => deleteItem(item.id));
 
     li.appendChild(label);
@@ -297,24 +302,17 @@ function renderList() {
 function setViewForActiveCategory() {
   const state = loadState();
   const active = getActiveCategory(state);
-
   const isPlanner = active.id === PLANNER_ID;
 
-  // Toggle UI
   checklistView.classList.toggle("hidden", isPlanner);
   plannerView.classList.toggle("hidden", !isPlanner);
   checklistActions.classList.toggle("hidden", isPlanner);
 
-  // Also disable +Category? keep it enabled (you can add categories anytime)
-  // Disable edit/delete when planner is active
   editCategoryBtn.disabled = isPlanner;
   deleteCategoryBtn.disabled = isPlanner;
 
-  if (isPlanner) {
-    renderPlanner();
-  } else {
-    renderList();
-  }
+  if (isPlanner) renderPlanner();
+  else renderList();
 }
 
 function renderAll() {
@@ -329,15 +327,14 @@ function openModal(mode) {
   const active = getActiveCategory(state);
 
   if (mode === "create") {
-    modalTitle.textContent = "New Category";
+    modalTitle.textContent = "Új kategória";
     modalName.value = "";
   } else {
-    if (active.locked) return; // safety
-    modalTitle.textContent = "Edit Category";
+    if (active.locked) return;
+    modalTitle.textContent = "Kategória szerkesztése";
     modalName.value = active.name;
   }
 
-  // local-only: disable shared toggle always
   modalShared.checked = false;
   modalShared.disabled = true;
 
@@ -393,28 +390,26 @@ function setActiveCategory(id) {
   const state = loadState();
   state.activeCategoryId = id;
   saveState(state);
-  // When switching to planner, reset to current week for nice UX:
-  plannerWeekOffset = 0;
+  plannerWeekOffset = 0; // reset to current week when switching
   renderAll();
 }
 
 function deleteCategory() {
   const state = loadState();
   const active = getActiveCategory(state);
-
   if (active.locked) return;
 
   const nonLockedCount = state.categories.filter(c => !c.locked).length;
   if (nonLockedCount <= 1) {
-    alert("You can’t delete the last category.");
+    alert("Az utolsó kategóriát nem lehet törölni.");
     return;
   }
 
-  const ok = confirm(`Delete category "${active.name}" and all its items?`);
+  const ok = confirm(`Törlöd a "${active.name}" kategóriát és minden elemét?`);
   if (!ok) return;
 
   state.categories = state.categories.filter(c => c.id !== active.id);
-  state.activeCategoryId = PLANNER_ID; // go back to planner
+  state.activeCategoryId = PLANNER_ID;
   saveState(state);
   renderAll();
 }

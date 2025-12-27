@@ -1,35 +1,37 @@
 <!doctype html>
-<html lang="en">
+<html lang="hu">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="theme-color" content="#111111" />
+  <meta name="theme-color" content="#0b0c0e" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
-  <title>OD 2.0</title>
+  <title>OD Jegyzetek 2.0</title>
 </head>
 <body>
-  <header>
-    <h1>OD 2.0</h1>
+  <header class="appHeader">
+    <div class="titleRow">
+      <h1>OD Jegyzetek 2.0</h1>
+    </div>
 
     <div class="topRow">
-      <select id="categorySelect" aria-label="Category"></select>
-      <button id="newCategory" type="button">+ Category</button>
+      <select id="categorySelect" aria-label="Kategória"></select>
+      <button id="newCategory" type="button" class="plusBtn" aria-label="Új kategória">+</button>
     </div>
 
     <div class="actionRow actionRow3" id="checklistActions">
-      <button id="editCategory" type="button" class="smallBtn">Edit</button>
-      <button id="deleteCategory" type="button" class="smallBtn danger">Delete</button>
-      <button id="clearChecked" type="button" class="smallBtn">Clear checked</button>
+      <button id="editCategory" type="button" class="chipBtn">Szerkeszt</button>
+      <button id="deleteCategory" type="button" class="chipBtn danger">Töröl</button>
+      <button id="clearChecked" type="button" class="chipBtn">Kipipáltak törlése</button>
     </div>
   </header>
 
   <main>
     <!-- Checklist UI -->
     <section id="checklistView">
-      <form id="itemForm">
-        <input id="itemInput" placeholder="Add item (e.g. milk)" autocomplete="off" />
-        <button type="submit">Add</button>
+      <form id="itemForm" class="addRow">
+        <input id="itemInput" placeholder="Új tétel (pl. tej)" autocomplete="off" />
+        <button type="submit" class="primaryBtn">Add</button>
       </form>
 
       <ul id="list"></ul>
@@ -38,13 +40,15 @@
     <!-- Planner UI -->
     <section id="plannerView" class="hidden">
       <div class="plannerHeader">
-        <button id="plannerPrev" type="button" class="smallBtn">◀</button>
+        <button id="plannerPrev" type="button" class="chipBtn">◀</button>
+
         <div class="plannerTitleWrap">
-          <div id="plannerTitle" class="plannerTitle">This week</div>
+          <div id="plannerTitle" class="plannerTitle">Aktuális hét</div>
           <div id="plannerRange" class="plannerRange">--</div>
         </div>
-        <button id="plannerToday" type="button" class="smallBtn">Today</button>
-        <button id="plannerNext" type="button" class="smallBtn">▶</button>
+
+        <button id="plannerToday" type="button" class="chipBtn">Ma</button>
+        <button id="plannerNext" type="button" class="chipBtn">▶</button>
       </div>
 
       <div id="plannerDays" class="plannerDays"></div>
@@ -55,36 +59,36 @@
   <div id="modalOverlay" class="modalOverlay hidden" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="modalHeader">
-        <h2 id="modalTitle">Category</h2>
-        <button id="modalClose" type="button" class="iconBtn" aria-label="Close">✕</button>
+        <h2 id="modalTitle">Kategória</h2>
+        <button id="modalClose" type="button" class="iconBtn" aria-label="Bezár">✕</button>
       </div>
 
       <div class="modalBody">
         <label class="field">
-          <span>Name</span>
-          <input id="modalName" type="text" placeholder="e.g. Ovi, Azúr" />
+          <span>Név</span>
+          <input id="modalName" type="text" placeholder="pl. Ovi, Azúr" />
         </label>
 
         <div class="toggleRow">
           <div>
-            <div class="toggleTitle">Type</div>
-            <div class="toggleHint">Local only for now.</div>
+            <div class="toggleTitle">Típus</div>
+            <div class="toggleHint">Jelenleg csak lokális.</div>
           </div>
 
-          <label class="switch" title="Local only">
+          <label class="switch" title="Jelenleg csak lokális">
             <input id="modalShared" type="checkbox" disabled />
             <span class="slider"></span>
           </label>
 
           <div class="toggleLabel">
-            <span class="strong">Local</span>
+            <span class="strong">Lokális</span>
           </div>
         </div>
       </div>
 
       <div class="modalFooter">
-        <button id="modalCancel" type="button">Cancel</button>
-        <button id="modalSave" type="button">Save</button>
+        <button id="modalCancel" type="button" class="chipBtn">Mégse</button>
+        <button id="modalSave" type="button" class="primaryBtn">Mentés</button>
       </div>
     </div>
   </div>

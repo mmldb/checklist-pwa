@@ -1,8 +1,8 @@
 {
-  "name": "OD 2.0",
-  "short_name": "OD 2.0",
+  "name": "OD Jegyzetek 2.0",
+  "short_name": "OD Jegyzetek",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#0f0f10",
-  "theme_color": "#111111"
+  "background_color": "#08090b",
+  "theme_color": "#0b0c0e"
 }
