@@ -7,14 +7,20 @@
   --text: rgba(255,255,255,.92);
   --muted: rgba(255,255,255,.60);
   --muted2: rgba(255,255,255,.45);
-  --radius: 16px;
+
+  /* accents */
+  --accent: #f3b27a;       /* pastel orange */
+  --deepGreen: #1f6b4f;    /* deep green for checkbox */
+
+  /* tighter + less round */
+  --radius: 10px;
 }
 
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
 body{
   margin:0;
-  padding:16px;
+  padding:14px;
   background: var(--bg);
   color: var(--text);
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
@@ -24,8 +30,8 @@ input, button, textarea, select { font-size: 16px; }
 
 .appHeader{
   display:grid;
-  gap:12px;
-  margin-bottom: 12px;
+  gap:8px;
+  margin-bottom: 10px;
 }
 
 .titleRow{ display:flex; align-items:flex-end; justify-content: space-between; }
@@ -33,21 +39,21 @@ h1{
   margin:0;
   font-size: 20px;
   letter-spacing: .2px;
-  font-weight: 750;
+  font-weight: 800;
   color: rgba(255,255,255,.92);
 }
 
+/* Top row */
 .topRow{
   display:grid;
-  grid-template-columns: 1fr auto;
-  gap:10px;
+  grid-template-columns: 1fr 56px;
+  gap:8px;
   align-items:center;
 }
 
-/* High-contrast select (no transparency) */
 select{
   width:100%;
-  padding: 12px 12px;
+  padding: 10px 12px;
   border-radius: var(--radius);
   border: 1px solid var(--stroke);
   background: var(--panel);
@@ -55,7 +61,7 @@ select{
   outline:none;
 }
 
-.actionRow{ display:grid; gap:10px; }
+.actionRow{ display:grid; gap:8px; }
 .actionRow3{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
 /* Buttons */
@@ -72,46 +78,65 @@ button:active{ transform: scale(.99); }
 button:disabled{ opacity: .45; cursor: not-allowed; }
 
 .plusBtn{
-  width: 48px;
-  height: 44px;
+  width: 56px;
+  height: 40px;
   display:grid;
-  place-items:center;
+  place-items:center;  /* centered */
   font-size: 22px;
-  font-weight: 800;
+  font-weight: 900;
   background: var(--panel);
+  position: relative;
+}
+.plusBtn::after{
+  /* tiny accent dot like a "design detail" */
+  content:"";
+  position:absolute;
+  right:10px; top:10px;
+  width:6px; height:6px;
+  border-radius: 999px;
+  background: var(--accent);
+  opacity: .9;
 }
 
 .chipBtn{
-  padding: 10px 10px;
-  font-size: 13px;
-  letter-spacing: .1px;
-  color: rgba(255,255,255,.90);
-  background: var(--panel);
+  padding: 10px 0;
+  font-size: 16px; /* emoji-only buttons look better a bit larger */
+  line-height: 1;
 }
 
 .primaryBtn{
-  padding: 12px 14px;
-  font-weight: 750;
-  border-color: rgba(255,255,255,.16);
+  padding: 11px 14px;
+  font-weight: 800;
+  border-color: rgba(255,255,255,.14);
   background: #171a1f;
+  position: relative;
+}
+.primaryBtn::after{
+  content:"";
+  display:inline-block;
+  width:8px; height:8px;
+  margin-left:10px;
+  border-radius:999px;
+  background: var(--accent);
+  vertical-align: middle;
 }
 
 .danger{
-  border-color: rgba(255,80,80,.28);
-  background: #1a1212;
+  border-color: rgba(255,80,80,.26);
+  background: #171012;
 }
 
 /* Add row */
 .addRow{
   display:grid;
   grid-template-columns: 1fr auto;
-  gap:10px;
-  margin: 12px 0;
+  gap:8px;
+  margin: 10px 0 8px 0;
 }
 
 #itemInput{
   min-width:0;
-  padding: 12px 12px;
+  padding: 11px 12px;
   border-radius: var(--radius);
   border: 1px solid var(--stroke);
   background: var(--panel2);
@@ -128,20 +153,22 @@ ul{
   padding:0;
   margin:0;
   display:grid;
-  gap:10px;
+  gap:6px; /* tighter */
 }
 
+/* Flat cards (no gradients) */
 li{
-  border: 1px solid var(--stroke);
+  border: 1px solid rgba(255,255,255,.08);
   border-radius: var(--radius);
-  padding: 12px;
-  background: var(--panel2);
+  padding: 10px;
+  background: #0f1114;
   display:grid;
   grid-template-columns: 1fr auto;
-  gap: 10px;
+  gap: 8px;
   align-items:center;
 }
 
+/* Item label */
 label.itemLabel{
   display:flex;
   gap:10px;
@@ -151,7 +178,7 @@ label.itemLabel{
 input[type="checkbox"]{
   width: 22px;
   height: 22px;
-  accent-color: rgba(255,255,255,.90);
+  accent-color: var(--deepGreen); /* deep green tick */
 }
 
 .itemText{
@@ -163,15 +190,16 @@ input[type="checkbox"]{
   opacity: .55;
 }
 
-.iconBtn{
-  padding: 8px 10px;
-  border-radius: 12px;
-  background: var(--panel);
+/* delete button in list = text only */
+.listDelBtn{
+  padding: 10px 12px;
+  font-size: 13px;
+  background: #111317;
 }
 
+/* Modal */
 .hidden{ display:none !important; }
 
-/* Modal */
 .modalOverlay{
   position:fixed;
   inset:0;
@@ -185,24 +213,30 @@ input[type="checkbox"]{
   width:100%;
   max-width: 520px;
   border: 1px solid var(--stroke);
-  border-radius: 18px;
+  border-radius: 14px;
   background: #0f1114;
 }
 .modalHeader{
   display:flex;
   justify-content: space-between;
   align-items:center;
-  padding: 14px 14px 10px 14px;
+  padding: 12px 12px 8px 12px;
 }
 .modalHeader h2{
   margin:0;
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 850;
 }
+.iconBtn{
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--panel);
+}
+
 .modalBody{
-  padding: 10px 14px 6px 14px;
+  padding: 8px 12px 6px 12px;
   display:grid;
-  gap:14px;
+  gap:12px;
 }
 .field{
   display:grid;
@@ -213,16 +247,15 @@ input[type="checkbox"]{
   color: var(--muted);
 }
 .field input{
-  padding: 12px;
+  padding: 11px 12px;
   border-radius: var(--radius);
   border: 1px solid var(--stroke);
   background: var(--panel);
   color: var(--text);
   outline:none;
-
-  /* iOS zoom prevention */
   font-size: 18px !important;
 }
+
 .toggleRow{
   display:grid;
   grid-template-columns: 1fr auto auto;
@@ -232,7 +265,7 @@ input[type="checkbox"]{
 .toggleTitle{ font-size: 12px; color: var(--muted); }
 .toggleHint{ font-size: 11px; color: var(--muted2); margin-top: 4px; }
 .toggleLabel{ font-size: 12px; color: var(--muted); text-align:right; }
-.toggleLabel .strong{ color: rgba(255,255,255,.86); font-weight: 700; }
+.toggleLabel .strong{ color: rgba(255,255,255,.86); font-weight: 800; }
 
 .switch{ position: relative; display:inline-block; width: 48px; height: 28px; opacity: .45; }
 .switch input{ display:none; }
@@ -250,19 +283,20 @@ input[type="checkbox"]{
   background: rgba(255,255,255,.85);
   border-radius: 999px;
 }
+
 .modalFooter{
   display:flex;
   justify-content: flex-end;
-  gap:10px;
-  padding: 10px 14px 14px 14px;
+  gap:8px;
+  padding: 10px 12px 12px 12px;
 }
 
 /* Planner */
 .plannerHeader{
   display:flex;
-  gap:10px;
+  gap:8px;
   align-items:center;
-  margin: 6px 0 12px 0;
+  margin: 2px 0 8px 0;
 }
 .plannerTitleWrap{
   flex:1;
@@ -271,7 +305,7 @@ input[type="checkbox"]{
   gap:2px;
 }
 .plannerTitle{
-  font-weight: 850;
+  font-weight: 900;
   font-size: 14px;
 }
 .plannerRange{
@@ -279,21 +313,21 @@ input[type="checkbox"]{
   color: var(--muted2);
 }
 
-.plannerDays{ display:grid; gap:10px; }
+.plannerDays{ display:grid; gap:6px; }
 
 .dayCard{
-  border: 1px solid var(--stroke);
+  border: 1px solid rgba(255,255,255,.08);
   border-radius: var(--radius);
   background: var(--panel2);
-  padding: 12px;
+  padding: 10px;
   display:grid;
-  gap:10px;
+  gap:8px;
 }
 
-/* subtle today highlight */
+/* more prominent today */
 .dayCard.today{
-  border-color: rgba(255,255,255,.22);
-  outline: 1px solid rgba(255,255,255,.12);
+  border-color: rgba(243,178,122,.55);
+  box-shadow: 0 0 0 1px rgba(243,178,122,.25) inset;
 }
 
 .dayHeader{
@@ -302,23 +336,21 @@ input[type="checkbox"]{
   gap:10px;
   align-items: baseline;
 }
-
-.dayName{ font-weight: 850; }
+.dayName{ font-weight: 900; }
 .dayDate{
   font-size: 12px;
   color: var(--muted2);
   white-space: nowrap;
 }
 
-/* single-line feel + auto-grow handled in JS */
 .dayNotes{
   width: 100%;
   resize: none;
   overflow: hidden;
-  min-height: 44px;
-  padding: 12px;
+  min-height: 40px;
+  padding: 10px 12px;
   border-radius: var(--radius);
-  border: 1px solid var(--stroke);
+  border: 1px solid rgba(255,255,255,.10);
   background: var(--panel);
   color: rgba(255,255,255,.92);
   outline: none;

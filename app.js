@@ -1,13 +1,6 @@
 // ===== Storage =====
 const STORAGE_KEY = "od2_state_v1";
 const PLANNER_KEY = "od2_planner_v1";
-const LEGACY_KEYS = [
-  "od2_categories_v1",
-  "checklist_categories_v1",
-  "checklist_topics_v1",
-  "checklist_topics_v1"
-];
-
 const PLANNER_ID = "__planner__";
 
 const form = document.getElementById("itemForm");
@@ -57,8 +50,16 @@ function autoGrow(el) {
   el.style.height = el.scrollHeight + "px";
 }
 
+// Random green shades for new checklist cards (subtle)
+function randomGreenShade() {
+  // HSL: green hues with low saturation for "muted" green cards
+  const h = 140 + Math.floor(Math.random() * 25);     // 140..164
+  const s = 18 + Math.floor(Math.random() * 14);      // 18..31
+  const l = 14 + Math.floor(Math.random() * 8);       // 14..21 (dark)
+  return `hsl(${h} ${s}% ${l}%)`;
+}
+
 function defaultState() {
-  // Start on first normal category so checklist "Add" works immediately
   const firstNormalId = uuid();
   return {
     activeCategoryId: firstNormalId,
@@ -69,28 +70,27 @@ function defaultState() {
   };
 }
 
-function migrateLegacy(legacy) { return legacy; }
-
 function normalizeState(state) {
   if (!state || typeof state !== "object") return null;
-
-  const cats = state.categories || state.topics;
+  const cats = state.categories;
   if (!Array.isArray(cats) || cats.length === 0) return null;
 
   let categories = cats.map((c) => ({
-    id: (c && c.id) ? c.id : uuid(),
-    name: (c && typeof c.name === "string" && c.name.trim()) ? c.name.trim() : "Kategória",
+    id: c?.id ? c.id : uuid(),
+    name: (typeof c?.name === "string" && c.name.trim()) ? c.name.trim() : "Kategória",
     shared: false,
     locked: !!c.locked,
     items: Array.isArray(c.items) ? c.items.map((it) => ({
       id: it?.id ? it.id : uuid(),
       text: typeof it?.text === "string" ? it.text : "",
       done: !!it?.done,
-      createdAt: typeof it?.createdAt === "number" ? it.createdAt : Date.now()
+      createdAt: typeof it?.createdAt === "number" ? it.createdAt : Date.now(),
+      // color per item card
+      color: typeof it?.color === "string" ? it.color : null
     })).filter(it => it.text.trim().length > 0) : []
   }));
 
-  // Ensure Planner exists + locked + name fixed
+  // Ensure planner exists + locked
   const hasPlanner = categories.some(c => c.id === PLANNER_ID);
   if (!hasPlanner) {
     categories.unshift({ id: PLANNER_ID, name: "Ez a hét", shared: false, items: [], locked: true });
@@ -99,13 +99,10 @@ function normalizeState(state) {
     categories.sort((a,b) => (a.id === PLANNER_ID ? -1 : b.id === PLANNER_ID ? 1 : 0));
   }
 
-  // Choose active category safely:
-  // - if saved active is valid, use it
-  // - else prefer first NON-planner category (so checklist works)
+  // Active category: keep if valid else first normal
   const activeId = state.activeCategoryId;
   const hasActive = activeId && categories.some(c => c.id === activeId);
   let activeCategoryId = hasActive ? activeId : null;
-
   if (!activeCategoryId) {
     const firstNormal = categories.find(c => c.id !== PLANNER_ID);
     activeCategoryId = firstNormal ? firstNormal.id : PLANNER_ID;
@@ -115,33 +112,19 @@ function normalizeState(state) {
 }
 
 function loadState() {
-  const rawNew = localStorage.getItem(STORAGE_KEY);
-  if (rawNew) {
-    const parsed = safeParse(rawNew);
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) {
+    const parsed = safeParse(raw);
     const normalized = normalizeState(parsed);
     if (normalized) return normalized;
   }
-
-  for (const key of LEGACY_KEYS) {
-    const raw = localStorage.getItem(key);
-    if (!raw) continue;
-    const parsed = safeParse(raw);
-    const migrated = migrateLegacy(parsed);
-    const normalized = normalizeState(migrated);
-    if (normalized) {
-      saveState(normalized);
-      return normalized;
-    }
-  }
-
   const s = defaultState();
   saveState(s);
   return s;
 }
 
 function saveState(state) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-  catch (e) { console.warn("localStorage save failed", e); }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
 function getActiveCategory(state) {
@@ -150,7 +133,7 @@ function getActiveCategory(state) {
   return cat;
 }
 
-// ===== Planner storage =====
+// ===== Planner store =====
 function loadPlannerStore() {
   const raw = localStorage.getItem(PLANNER_KEY);
   const parsed = raw ? safeParse(raw) : null;
@@ -172,12 +155,10 @@ function formatNiceDate(d) {
   const yyyy = d.getFullYear();
   return `${yyyy}.${mm}.${dd}`;
 }
-
-// Monday-based week start
 function getMonday(d) {
   const date = new Date(d);
   date.setHours(0,0,0,0);
-  const day = date.getDay(); // 0 Sun, 1 Mon...
+  const day = date.getDay();
   const diff = (day === 0 ? -6 : 1 - day);
   date.setDate(date.getDate() + diff);
   return date;
@@ -196,7 +177,7 @@ function renderPlanner() {
   const monday = addDays(baseMonday, plannerWeekOffset * 7);
   const sunday = addDays(monday, 6);
 
-  plannerTitle.textContent = (plannerWeekOffset === 0) ? "Ez a hét" : "Hét";
+  plannerTitle.textContent = "Ez a hét";
   plannerRange.textContent = `${formatNiceDate(monday)} -- ${formatNiceDate(sunday)}`;
 
   const store = loadPlannerStore();
@@ -231,8 +212,6 @@ function renderPlanner() {
     textarea.placeholder = "Jegyzet…";
     textarea.rows = 1;
     textarea.value = store[iso] || "";
-
-    // auto-grow initial
     setTimeout(() => autoGrow(textarea), 0);
 
     textarea.addEventListener("input", () => {
@@ -248,7 +227,7 @@ function renderPlanner() {
   }
 }
 
-// ===== Render checklist =====
+// ===== Checklist render =====
 function renderCategories() {
   const state = loadState();
   const active = getActiveCategory(state);
@@ -272,6 +251,9 @@ function renderList() {
     const li = document.createElement("li");
     if (item.done) li.classList.add("checked");
 
+    // apply random-ish green background if present
+    if (item.color) li.style.background = item.color;
+
     const label = document.createElement("label");
     label.className = "itemLabel";
 
@@ -289,8 +271,8 @@ function renderList() {
 
     const del = document.createElement("button");
     del.type = "button";
-    del.className = "chipBtn";
-    del.textContent = "❌ Töröl";
+    del.className = "chipBtn listDelBtn";
+    del.textContent = "Delete"; // no ❌ emoji
     del.addEventListener("click", () => deleteItem(item.id));
 
     li.appendChild(label);
@@ -308,7 +290,6 @@ function setViewForActiveCategory() {
   plannerView.classList.toggle("hidden", !isPlanner);
   checklistActions.classList.toggle("hidden", isPlanner);
 
-  // Enable/disable category actions appropriately
   editCategoryBtn.disabled = isPlanner;
   deleteCategoryBtn.disabled = isPlanner;
 
@@ -321,7 +302,7 @@ function renderAll() {
   setViewForActiveCategory();
 }
 
-// ===== Modal (categories) =====
+// ===== Modal =====
 function openModal(mode) {
   modalMode = mode;
   const state = loadState();
@@ -357,12 +338,7 @@ function saveModal() {
   const active = getActiveCategory(state);
 
   if (modalMode === "create") {
-    state.categories.push({
-      id: uuid(),
-      name,
-      shared: false,
-      items: []
-    });
+    state.categories.push({ id: uuid(), name, shared: false, items: [] });
     state.activeCategoryId = state.categories[state.categories.length - 1].id;
   } else {
     if (active.locked) return;
@@ -380,7 +356,6 @@ modalOverlay.addEventListener("click", (e) => {
 modalClose.addEventListener("click", closeModal);
 modalCancel.addEventListener("click", closeModal);
 modalSave.addEventListener("click", saveModal);
-
 modalName.addEventListener("keydown", (e) => {
   if (e.key === "Enter") saveModal();
   if (e.key === "Escape") closeModal();
@@ -391,10 +366,7 @@ function setActiveCategory(id) {
   const state = loadState();
   state.activeCategoryId = id;
   saveState(state);
-
-  // switching to planner feels best at current week
   plannerWeekOffset = 0;
-
   renderAll();
 }
 
@@ -409,12 +381,10 @@ function deleteCategory() {
     return;
   }
 
-  const ok = confirm(`Törlöd a "${active.name}" kategóriát és minden elemét?`);
+  const ok = confirm(`Törlöd a kategóriát? (${active.name})`);
   if (!ok) return;
 
   state.categories = state.categories.filter(c => c.id !== active.id);
-
-  // go to first normal category (not planner) so checklist stays usable
   const firstNormal = state.categories.find(c => c.id !== PLANNER_ID) || state.categories[0];
   state.activeCategoryId = firstNormal.id;
 
@@ -432,7 +402,14 @@ function addItem(text) {
     return;
   }
 
-  cat.items.unshift({ id: uuid(), text, done: false, createdAt: Date.now() });
+  cat.items.unshift({
+    id: uuid(),
+    text,
+    done: false,
+    createdAt: Date.now(),
+    color: randomGreenShade()
+  });
+
   saveState(state);
   renderList();
 }
@@ -451,7 +428,6 @@ function toggleItem(itemId) {
 function deleteItem(itemId) {
   const state = loadState();
   const cat = getActiveCategory(state);
-
   cat.items = cat.items.filter(i => i.id !== itemId);
   saveState(state);
   renderList();
@@ -460,7 +436,6 @@ function deleteItem(itemId) {
 function clearChecked() {
   const state = loadState();
   const cat = getActiveCategory(state);
-
   cat.items = cat.items.filter(i => !i.done);
   saveState(state);
   renderList();
@@ -487,7 +462,7 @@ plannerPrev.addEventListener("click", () => { plannerWeekOffset -= 1; renderPlan
 plannerNext.addEventListener("click", () => { plannerWeekOffset += 1; renderPlanner(); });
 plannerToday.addEventListener("click", () => { plannerWeekOffset = 0; renderPlanner(); });
 
-// Offline (service worker)
+// Offline
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     try { await navigator.serviceWorker.register("./sw.js"); }
