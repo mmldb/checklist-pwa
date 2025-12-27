@@ -17,11 +17,10 @@
       <button id="newCategory" type="button">+ Category</button>
     </div>
 
-    <div class="actionRow">
+    <div class="actionRow actionRow3">
       <button id="editCategory" type="button" class="smallBtn">Edit</button>
       <button id="deleteCategory" type="button" class="smallBtn danger">Delete</button>
       <button id="clearChecked" type="button" class="smallBtn">Clear checked</button>
-      <button id="clearAll" type="button" class="smallBtn danger">Clear all</button>
     </div>
   </header>
 
@@ -51,16 +50,16 @@
         <div class="toggleRow">
           <div>
             <div class="toggleTitle">Type</div>
-            <div class="toggleHint">Shared sync comes in the next step (Supabase).</div>
+            <div class="toggleHint">Local only for now.</div>
           </div>
 
-          <label class="switch">
-            <input id="modalShared" type="checkbox" />
+          <label class="switch" title="Local only">
+            <input id="modalShared" type="checkbox" disabled />
             <span class="slider"></span>
           </label>
+
           <div class="toggleLabel">
-            <span>Local</span>
-            <span class="strong">Shared</span>
+            <span class="strong">Local</span>
           </div>
         </div>
       </div>

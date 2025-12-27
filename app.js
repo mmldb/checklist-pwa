@@ -1,11 +1,17 @@
-const STORAGE_KEY = "od2_categories_v1";
+// ===== Storage keys (we'll migrate automatically) =====
+const STORAGE_KEY = "od2_state_v1";
+const LEGACY_KEYS = [
+  "od2_categories_v1",
+  "checklist_categories_v1",
+  "checklist_topics_v1",
+  "checklist_topics_v1"
+];
 
 const form = document.getElementById("itemForm");
 const input = document.getElementById("itemInput");
 const list = document.getElementById("list");
 
 const clearCheckedBtn = document.getElementById("clearChecked");
-const clearAllBtn = document.getElementById("clearAll");
 
 const categorySelect = document.getElementById("categorySelect");
 const newCategoryBtn = document.getElementById("newCategory");
@@ -23,48 +29,104 @@ const modalSave = document.getElementById("modalSave");
 
 let modalMode = "create"; // "create" | "edit"
 
+function uuid() {
+  if (crypto && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  return "id_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2);
+}
+
 function defaultState() {
   return {
     activeCategoryId: null,
     categories: [
-      { id: crypto.randomUUID(), name: "Bevásárlás", shared: false, items: [] }
+      { id: uuid(), name: "Bevásárlás", shared: false, items: [] }
     ]
   };
 }
 
+function safeParse(raw) {
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
+// ---- Migration layer: loads from newest key, else legacy keys, else defaults ----
 function loadState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultState();
-    const state = JSON.parse(raw);
-    if (!state.categories || !state.categories.length) return defaultState();
-    return state;
-  } catch {
-    return defaultState();
+  const rawNew = localStorage.getItem(STORAGE_KEY);
+  if (rawNew) {
+    const parsed = safeParse(rawNew);
+    const normalized = normalizeState(parsed);
+    if (normalized) return normalized;
   }
+
+  for (const key of LEGACY_KEYS) {
+    const raw = localStorage.getItem(key);
+    if (!raw) continue;
+    const parsed = safeParse(raw);
+    const migrated = migrateLegacy(parsed);
+    const normalized = normalizeState(migrated);
+    if (normalized) {
+      saveState(normalized);
+      return normalized;
+    }
+  }
+
+  const s = defaultState();
+  saveState(s);
+  return s;
 }
 
 function saveState(state) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.warn("localStorage save failed", e);
+  }
+}
+
+function normalizeState(state) {
+  if (!state || typeof state !== "object") return null;
+
+  const cats = state.categories || state.topics;
+  if (!Array.isArray(cats) || cats.length === 0) return null;
+
+  const categories = cats.map((c) => ({
+    id: (c && c.id) ? c.id : uuid(),
+    name: (c && typeof c.name === "string" && c.name.trim()) ? c.name.trim() : "Category",
+    shared: false, // local-only now
+    items: Array.isArray(c.items) ? c.items.map((it) => ({
+      id: it?.id ? it.id : uuid(),
+      text: typeof it?.text === "string" ? it.text : "",
+      done: !!it?.done,
+      createdAt: typeof it?.createdAt === "number" ? it.createdAt : Date.now()
+    })).filter(it => it.text.trim().length > 0) : []
+  }));
+
+  const activeCategoryId =
+    (state.activeCategoryId && categories.some(c => c.id === state.activeCategoryId))
+      ? state.activeCategoryId
+      : categories[0].id;
+
+  return { activeCategoryId, categories };
+}
+
+function migrateLegacy(legacy) {
+  return legacy;
 }
 
 function getActiveCategory(state) {
-  const id = state.activeCategoryId || state.categories[0].id;
-  const cat = state.categories.find(c => c.id === id) || state.categories[0];
+  const cat = state.categories.find(c => c.id === state.activeCategoryId) || state.categories[0];
   state.activeCategoryId = cat.id;
   return cat;
 }
 
+// ===== Render =====
 function renderCategories() {
   const state = loadState();
   const active = getActiveCategory(state);
-  saveState(state);
 
   categorySelect.innerHTML = "";
   state.categories.forEach(c => {
     const opt = document.createElement("option");
     opt.value = c.id;
-    opt.textContent = c.shared ? `🔗 ${c.name}` : c.name;
+    opt.textContent = c.name;
     if (c.id === active.id) opt.selected = true;
     categorySelect.appendChild(opt);
   });
@@ -111,14 +173,7 @@ function renderAll() {
   renderList();
 }
 
-function setActiveCategory(id) {
-  const state = loadState();
-  state.activeCategoryId = id;
-  saveState(state);
-  renderList();
-}
-
-// ----- Modal helpers -----
+// ===== Modal =====
 function openModal(mode) {
   modalMode = mode;
   const state = loadState();
@@ -127,12 +182,14 @@ function openModal(mode) {
   if (mode === "create") {
     modalTitle.textContent = "New Category";
     modalName.value = "";
-    modalShared.checked = false; // default local
   } else {
     modalTitle.textContent = "Edit Category";
     modalName.value = active.name;
-    modalShared.checked = !!active.shared;
   }
+
+  // local-only: disable shared toggle always
+  modalShared.checked = false;
+  modalShared.disabled = true;
 
   modalOverlay.classList.remove("hidden");
   modalOverlay.setAttribute("aria-hidden", "false");
@@ -148,21 +205,19 @@ function saveModal() {
   const name = (modalName.value || "").trim();
   if (!name) return;
 
-  const shared = !!modalShared.checked;
   const state = loadState();
   const active = getActiveCategory(state);
 
   if (modalMode === "create") {
     state.categories.unshift({
-      id: crypto.randomUUID(),
+      id: uuid(),
       name,
-      shared,
+      shared: false,
       items: []
     });
     state.activeCategoryId = state.categories[0].id;
   } else {
     active.name = name;
-    active.shared = shared;
   }
 
   saveState(state);
@@ -170,7 +225,6 @@ function saveModal() {
   renderAll();
 }
 
-// Clicking outside modal closes it
 modalOverlay.addEventListener("click", (e) => {
   if (e.target === modalOverlay) closeModal();
 });
@@ -178,13 +232,19 @@ modalClose.addEventListener("click", closeModal);
 modalCancel.addEventListener("click", closeModal);
 modalSave.addEventListener("click", saveModal);
 
-// Enter key submits modal
 modalName.addEventListener("keydown", (e) => {
   if (e.key === "Enter") saveModal();
   if (e.key === "Escape") closeModal();
 });
 
-// ----- CRUD category -----
+// ===== Category actions =====
+function setActiveCategory(id) {
+  const state = loadState();
+  state.activeCategoryId = id;
+  saveState(state);
+  renderList();
+}
+
 function deleteCategory() {
   const state = loadState();
   const active = getActiveCategory(state);
@@ -203,11 +263,12 @@ function deleteCategory() {
   renderAll();
 }
 
-// ----- Items -----
+// ===== Items =====
 function addItem(text) {
   const state = loadState();
   const cat = getActiveCategory(state);
-  cat.items.unshift({ id: crypto.randomUUID(), text, done: false, createdAt: Date.now() });
+
+  cat.items.unshift({ id: uuid(), text, done: false, createdAt: Date.now() });
   saveState(state);
   renderList();
 }
@@ -217,6 +278,7 @@ function toggleItem(itemId) {
   const cat = getActiveCategory(state);
   const item = cat.items.find(i => i.id === itemId);
   if (!item) return;
+
   item.done = !item.done;
   saveState(state);
   renderList();
@@ -225,6 +287,7 @@ function toggleItem(itemId) {
 function deleteItem(itemId) {
   const state = loadState();
   const cat = getActiveCategory(state);
+
   cat.items = cat.items.filter(i => i.id !== itemId);
   saveState(state);
   renderList();
@@ -233,20 +296,13 @@ function deleteItem(itemId) {
 function clearChecked() {
   const state = loadState();
   const cat = getActiveCategory(state);
+
   cat.items = cat.items.filter(i => !i.done);
   saveState(state);
   renderList();
 }
 
-function clearAll() {
-  const state = loadState();
-  const cat = getActiveCategory(state);
-  cat.items = [];
-  saveState(state);
-  renderList();
-}
-
-// Events
+// ===== Events =====
 form.addEventListener("submit", (e) => {
   e.preventDefault();
   const value = input.value.trim();
@@ -262,9 +318,6 @@ editCategoryBtn.addEventListener("click", () => openModal("edit"));
 deleteCategoryBtn.addEventListener("click", deleteCategory);
 
 clearCheckedBtn.addEventListener("click", clearChecked);
-clearAllBtn.addEventListener("click", () => {
-  if (confirm("Clear the entire list for this category?")) clearAll();
-});
 
 // Offline (service worker)
 if ("serviceWorker" in navigator) {

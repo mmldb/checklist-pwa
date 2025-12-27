@@ -21,10 +21,13 @@ select {
   color: #f2f2f2;
 }
 
+/* 3 buttons in one row */
 .actionRow {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
+}
+.actionRow3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 form { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin: 12px 0; }
@@ -35,7 +38,9 @@ form { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin: 12px 0
   border: 1px solid #2a2a2a;
   background: #161617;
   color: #f2f2f2;
-  font-size: 18px !important; /* bulletproof iOS no-zoom */
+
+  /* Bulletproof iOS: prevent focus zoom */
+  font-size: 18px !important;
   line-height: 1.2;
 }
 
@@ -74,10 +79,7 @@ input[type="checkbox"] { width: 22px; height: 22px; }
 .itemText { word-break: break-word; }
 .checked .itemText { text-decoration: line-through; opacity: 0.6; }
 
-.iconBtn {
-  padding: 8px 10px;
-  border-radius: 10px;
-}
+.iconBtn { padding: 8px 10px; border-radius: 10px; }
 
 /* Modal */
 .modalOverlay {
@@ -89,7 +91,6 @@ input[type="checkbox"] { width: 22px; height: 22px; }
   padding: 16px;
   z-index: 9999;
 }
-
 .hidden { display: none; }
 
 .modal {
@@ -107,11 +108,7 @@ input[type="checkbox"] { width: 22px; height: 22px; }
   align-items: center;
   padding: 14px 14px 8px 14px;
 }
-
-.modalHeader h2 {
-  margin: 0;
-  font-size: 18px;
-}
+.modalHeader h2 { margin: 0; font-size: 18px; }
 
 .modalBody { padding: 12px 14px 6px 14px; display: grid; gap: 14px; }
 
@@ -132,18 +129,17 @@ input[type="checkbox"] { width: 22px; height: 22px; }
   gap: 12px;
   align-items: center;
 }
-
 .toggleTitle { font-size: 14px; opacity: 0.9; }
 .toggleHint { font-size: 12px; opacity: 0.6; margin-top: 4px; }
 
 .toggleLabel { display: grid; gap: 2px; font-size: 12px; opacity: 0.85; text-align: right; }
 .toggleLabel .strong { opacity: 1; font-weight: 600; }
 
-/* iOS-style switch */
-.switch { position: relative; display: inline-block; width: 48px; height: 28px; }
+/* Switch (disabled for now) */
+.switch { position: relative; display: inline-block; width: 48px; height: 28px; opacity: 0.5; }
 .switch input { display:none; }
 .slider {
-  position: absolute; cursor: pointer; inset: 0;
+  position: absolute; cursor: not-allowed; inset: 0;
   background-color: #2b2b2b;
   transition: .2s;
   border-radius: 999px;
@@ -157,8 +153,6 @@ input[type="checkbox"] { width: 22px; height: 22px; }
   transition: .2s;
   border-radius: 999px;
 }
-.switch input:checked + .slider { background-color: #2b3a2b; }
-.switch input:checked + .slider:before { transform: translateX(19px); }
 
 .modalFooter {
   display: flex;
