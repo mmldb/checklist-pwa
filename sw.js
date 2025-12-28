@@ -1,4 +1,4 @@
-const CACHE_NAME = "od2-cache-v9";
+const CACHE_NAME = "od3-cache-v10";
 const ASSETS = [
   "./",
   "./index.html",

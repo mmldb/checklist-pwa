@@ -1,21 +1,22 @@
 :root{
   --bg: #090A0C;
-  --panel: #0F1115;
-  --panel2: #0C0E12;
   --stroke: rgba(255,255,255,.10);
   --stroke2: rgba(255,255,255,.18);
   --text: rgba(255,255,255,.92);
   --muted: rgba(255,255,255,.62);
   --muted2: rgba(255,255,255,.45);
 
-  /* sharper edges */
-  --radius: 4px;
-
-  /* deep green for checkbox tick */
-  --deepGreen: #1f6b4f;
+  /* subtle round */
+  --radius: 10px;
 
   /* consistent control height */
   --controlH: 44px;
+
+  /* tick */
+  --deepGreen: #1f6b4f;
+
+  /* planner work toggle */
+  --workBlue: #9cc6ff; /* pastel-ish blue */
 }
 
 *{ box-sizing:border-box; }
@@ -28,6 +29,7 @@ body{
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
 }
 
+/* iOS zoom prevention */
 input, button, textarea, select { font-size: 16px; }
 
 .appHeader{
@@ -41,11 +43,10 @@ h1{
   margin:0;
   font-size: 20px;
   letter-spacing: .1px;
-  font-weight: 500; /* regular */
+  font-weight: 500;
   color: rgba(255,255,255,.92);
 }
 
-/* Top row */
 .topRow{
   display:grid;
   grid-template-columns: 1fr 56px;
@@ -58,26 +59,20 @@ select{
   height: var(--controlH);
   padding: 0 12px;
   border-radius: var(--radius);
-  border: 1px solid var(--stroke);
-  background: var(--panel);
-  color: var(--text);
+  border: 1px solid rgba(0,0,0,.12);
   outline:none;
 }
 
-/* Actions row */
 .actionRow{ display:grid; gap:8px; }
 .actionRow3{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
-/* Buttons */
 button{
   border-radius: var(--radius);
-  border: 1px solid var(--stroke);
-  background: var(--panel);
-  color: var(--text);
+  border: 1px solid rgba(0,0,0,.12);
   cursor:pointer;
-  transition: transform .06s ease, border-color .12s ease, background .12s ease, opacity .12s ease;
+  transition: transform .06s ease, border-color .12s ease, opacity .12s ease;
 }
-button:hover{ border-color: var(--stroke2); }
+button:hover{ border-color: rgba(0,0,0,.18); }
 button:active{ transform: scale(.99); }
 button:disabled{ opacity: .45; cursor: not-allowed; }
 
@@ -87,8 +82,7 @@ button:disabled{ opacity: .45; cursor: not-allowed; }
   display:grid;
   place-items:center;
   font-size: 22px;
-  font-weight: 700;
-  background: var(--panel);
+  font-weight: 750;
 }
 
 .chipBtn{
@@ -96,19 +90,13 @@ button:disabled{ opacity: .45; cursor: not-allowed; }
   padding: 0;
   font-size: 16px;
   line-height: 1;
+  font-weight: 700;
 }
 
 .primaryBtn{
   height: var(--controlH);
   padding: 0 14px;
-  font-weight: 700;
-  border-color: rgba(255,255,255,.14);
-  background: #151821;
-}
-
-.danger{
-  border-color: rgba(255,80,80,.26);
-  background: #171012;
+  font-weight: 800;
 }
 
 /* Planner arrows: wide tap targets */
@@ -116,10 +104,9 @@ button:disabled{ opacity: .45; cursor: not-allowed; }
   width: 72px;
   height: var(--controlH);
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 800;
 }
 
-/* Add row */
 .addRow{
   display:grid;
   grid-template-columns: 1fr auto;
@@ -132,9 +119,7 @@ button:disabled{ opacity: .45; cursor: not-allowed; }
   height: var(--controlH);
   padding: 0 12px;
   border-radius: var(--radius);
-  border: 1px solid var(--stroke);
-  background: var(--panel2);
-  color: var(--text);
+  border: 1px solid rgba(0,0,0,.12);
   outline:none;
 
   /* iOS zoom prevention */
@@ -151,10 +136,9 @@ ul{
   gap: 0;
 }
 
-/* Flat bold card blocks (touching) */
+/* Checklist cards (touching) */
 li{
-  border: 1px solid rgba(0,0,0,.10);
-  border-radius: 0;          /* sharp edges */
+  border-radius: var(--radius);
   padding: 12px;
   display:grid;
   grid-template-columns: 1fr auto;
@@ -162,11 +146,14 @@ li{
   align-items:center;
   position: relative;
   overflow:hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y; /* allow vertical scroll; we detect horizontal swipe */
 }
 
-/* hairline separators since gap is 0 */
+/* zero gap, but still separation */
 li + li{
-  border-top: 1px solid rgba(0,0,0,.12);
+  margin-top: 0;
 }
 
 /* Item label */
@@ -174,6 +161,7 @@ label.itemLabel{
   display:flex;
   gap:10px;
   align-items:center;
+  min-width:0;
 }
 
 input[type="checkbox"]{
@@ -182,10 +170,11 @@ input[type="checkbox"]{
   accent-color: var(--deepGreen);
 }
 
-/* On bright cards: dark text */
+/* Text defaults (JS flips based on contrast) */
 .itemText{
+  min-width:0;
   word-break: break-word;
-  font-weight: 800;
+  font-weight: 850;
   letter-spacing: .1px;
   color: rgba(0,0,0,.88);
 }
@@ -199,11 +188,11 @@ input[type="checkbox"]{
   height: 36px;
   padding: 0 12px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
+  border-radius: 10px;
   background: rgba(0,0,0,.18);
   border: 1px solid rgba(0,0,0,.12);
   color: rgba(0,0,0,.85);
-  border-radius: var(--radius);
 }
 
 /* When a card is dark, swap to light text */
@@ -230,7 +219,7 @@ li[data-contrast="light"] .listDelBtn{
   width:100%;
   max-width: 520px;
   border: 1px solid var(--stroke);
-  border-radius: var(--radius);
+  border-radius: 14px;
   background: #0f1114;
 }
 .modalHeader{
@@ -242,12 +231,14 @@ li[data-contrast="light"] .listDelBtn{
 .modalHeader h2{
   margin:0;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 750;
 }
 .iconBtn{
   padding: 8px 10px;
-  border-radius: var(--radius);
-  background: var(--panel);
+  border-radius: 12px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.10);
+  color: rgba(255,255,255,.92);
 }
 
 .modalBody{
@@ -267,9 +258,9 @@ li[data-contrast="light"] .listDelBtn{
   height: var(--controlH);
   padding: 0 12px;
   border-radius: var(--radius);
-  border: 1px solid var(--stroke);
-  background: var(--panel);
-  color: var(--text);
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.92);
   outline:none;
   font-size: 18px !important;
 }
@@ -283,14 +274,14 @@ li[data-contrast="light"] .listDelBtn{
 .toggleTitle{ font-size: 12px; color: var(--muted); }
 .toggleHint{ font-size: 11px; color: var(--muted2); margin-top: 4px; }
 .toggleLabel{ font-size: 12px; color: var(--muted); text-align:right; }
-.toggleLabel .strong{ color: rgba(255,255,255,.86); font-weight: 700; }
+.toggleLabel .strong{ color: rgba(255,255,255,.86); font-weight: 800; }
 
 .switch{ position: relative; display:inline-block; width: 48px; height: 28px; opacity: .45; }
 .switch input{ display:none; }
 .slider{
   position:absolute; inset:0;
   background: rgba(255,255,255,.06);
-  border: 1px solid var(--stroke);
+  border: 1px solid rgba(255,255,255,.10);
   border-radius: 999px;
 }
 .slider:before{
@@ -316,6 +307,7 @@ li[data-contrast="light"] .listDelBtn{
   align-items:center;
   margin: 2px 0 8px 0;
 }
+
 .plannerTitleWrap{
   flex:1;
   min-width:0;
@@ -323,7 +315,7 @@ li[data-contrast="light"] .listDelBtn{
   gap:2px;
 }
 .plannerTitle{
-  font-weight: 700;
+  font-weight: 850;
   font-size: 14px;
   letter-spacing: .1px;
 }
@@ -338,34 +330,83 @@ li[data-contrast="light"] .listDelBtn{
   gap: 0;
 }
 
+/* Planner day card becomes a 2-col layout */
 .dayCard{
-  border: 1px solid rgba(255,255,255,.06);
-  border-radius: 0;
-  background: #111317;
-  padding: 12px;
+  border-radius: var(--radius);
+  padding: 10px;
   display:grid;
-  gap:8px;
-}
-.dayCard + .dayCard{
-  border-top: 1px solid rgba(255,255,255,.10);
+  grid-template-columns: 86px 1fr;
+  gap: 10px;
+  align-items: stretch;
+  overflow:hidden;
 }
 
+/* More prominent today */
 .dayCard.today{
-  /* more prominent */
-  border-left: 3px solid rgba(255,255,255,.28);
-  box-shadow: 0 0 0 1px rgba(255,255,255,.10) inset;
+  box-shadow: 0 0 0 2px rgba(255,255,255,.20) inset;
 }
 
-.dayHeader{
+/* Left badge block */
+.dayBadge{
+  border-radius: 12px;
+  padding: 10px 10px;
+  display:grid;
+  align-content: space-between;
+  gap: 6px;
+  position: relative;
+}
+
+/* HÉ / KE etc */
+.dayAbbrev{
+  font-weight: 950;
+  font-size: 18px;
+  letter-spacing: .6px;
+  line-height: 1;
+}
+
+/* date small under */
+.dayBadgeDate{
+  font-size: 12px;
+  opacity: .75;
+  font-weight: 800;
+}
+
+/* Freelance toggle */
+.workToggle{
+  position:absolute;
+  right:8px;
+  top:8px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 2px solid rgba(255,255,255,.55);
+  background: transparent;
+}
+.workToggle.on{
+  background: var(--workBlue);
+  border-color: rgba(0,0,0,.22);
+}
+
+/* Right side: notes */
+.dayRight{
+  display:grid;
+  gap: 8px;
+}
+
+.dayHeaderRow{
   display:flex;
   justify-content: space-between;
-  gap:10px;
   align-items: baseline;
+  gap: 8px;
 }
-.dayName{ font-weight: 800; }
+.dayName{
+  font-weight: 900;
+  font-size: 14px;
+}
 .dayDate{
   font-size: 12px;
-  color: var(--muted2);
+  opacity: .70;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -376,9 +417,7 @@ li[data-contrast="light"] .listDelBtn{
   min-height: 40px;
   padding: 10px 12px;
   border-radius: var(--radius);
-  border: 1px solid rgba(255,255,255,.10);
-  background: #0f1115;
-  color: rgba(255,255,255,.92);
+  border: 1px solid rgba(0,0,0,.12);
   outline: none;
 
   font-size: 18px;
