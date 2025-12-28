@@ -1,229 +1,648 @@
-// --- STATE MANAGEMENT ---
-const state = {
-    view: 'checklist', // or 'planner'
-    weekOffset: 0,     // 0 = current week
-    checklist: JSON.parse(localStorage.getItem('od_checklist') || '[]'),
-    planner: JSON.parse(localStorage.getItem('od_planner') || '{}')
-};
+/* OD Jegyzetek 3.0 - Local-first
+   - Planner: fixed palette per weekday, week nav + today button + today highlight
+   - Checklist: random palette color per item (stored), swipe-left moves item to top
+*/
 
-// Colors for the UI
+const STORAGE_KEY = "od_jegyzetek_v3";
+
 const PALETTE = [
-    'var(--c-red)', 'var(--c-orange)', 'var(--c-yellow)', 
-    'var(--c-green)', 'var(--c-blue)', 'var(--c-purple)', 'var(--c-pink)'
+  "#C8C8C8",
+  "#86986C",
+  "#ACC4F9",
+  "#FF5900",
+  "#B06944",
+  "#FAB42A",
+  "#0C76FF",
+  "#FFB0D6",
+  "#E7E7E7",
 ];
 
-const WEEK_DAYS_HU = ['HÉ', 'KE', 'SZE', 'CS', 'PÉ', 'SZO', 'VA'];
+const WEEKDAY = [
+  { short: "HÉ",  color: "#FF5900" },
+  { short: "KE",  color: "#FAB42A" },
+  { short: "SZE", color: "#86986C" },
+  { short: "CS",  color: "#ACC4F9" },
+  { short: "PÉ",  color: "#0C76FF" },
+  { short: "SZO", color: "#FFB0D6" },
+  { short: "VA",  color: "#C8C8C8" },
+];
 
-// --- DATE HELPERS (No libraries) ---
-function getMonday(d) {
-    d = new Date(d);
-    let day = d.getDay(),
-        diff = d.getDate() - day + (day == 0 ? -6 : 1); 
-    return new Date(d.setDate(diff));
+const $ = (id) => document.getElementById(id);
+
+const els = {
+  categorySelect: $("categorySelect"),
+  newCategory: $("newCategory"),
+  editCategory: $("editCategory"),
+  deleteCategory: $("deleteCategory"),
+  clearChecked: $("clearChecked"),
+  checklistActions: $("checklistActions"),
+
+  checklistView: $("checklistView"),
+  plannerView: $("plannerView"),
+
+  itemForm: $("itemForm"),
+  itemInput: $("itemInput"),
+  list: $("list"),
+
+  plannerPrev: $("plannerPrev"),
+  plannerNext: $("plannerNext"),
+  plannerToday: $("plannerToday"),
+  plannerRange: $("plannerRange"),
+  plannerLabel: $("plannerLabel"),
+  plannerDays: $("plannerDays"),
+
+  modalOverlay: $("modalOverlay"),
+  modalTitle: $("modalTitle"),
+  modalName: $("modalName"),
+  modalClose: $("modalClose"),
+  modalCancel: $("modalCancel"),
+  modalSave: $("modalSave"),
+};
+
+function uid() {
+  return Math.random().toString(16).slice(2) + Date.now().toString(16);
 }
 
-function addDays(date, days) {
-    let result = new Date(date);
-    result.setDate(result.getDate() + days);
-    return result;
+function clampText(v) {
+  if (v == null) return "";
+  const s = String(v);
+  if (s === "undefined") return "";
+  return s;
 }
 
-function formatDateKey(date) {
-    return date.toISOString().split('T')[0]; // "2024-01-01"
+function pickRandomPaletteColor() {
+  // Avoid too-many grays? keep as-is for now per request
+  return PALETTE[Math.floor(Math.random() * PALETTE.length)];
 }
 
-// --- CORE FUNCTIONS ---
-
-function save() {
-    localStorage.setItem('od_checklist', JSON.stringify(state.checklist));
-    localStorage.setItem('od_planner', JSON.stringify(state.planner));
+function formatMMDD(d) {
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${m}.${day}`;
 }
 
-function render() {
-    const main = document.getElementById('main-content');
-    main.innerHTML = ''; // Clear current view
+function startOfWeekMonday(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  const jsDay = d.getDay(); // 0=Sun..6=Sat
+  const mondayOffset = (jsDay + 6) % 7; // Mon=0
+  d.setDate(d.getDate() - mondayOffset);
+  return d;
+}
 
-    // Update Nav
-    document.querySelectorAll('.nav-item').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.tab === state.view);
+function addDays(date, n) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
+}
+
+function isoDate(d) {
+  const x = new Date(d);
+  x.setHours(0,0,0,0);
+  return x.toISOString().slice(0,10);
+}
+
+function deepCopy(obj) {
+  return JSON.parse(JSON.stringify(obj));
+}
+
+/* ---------- State ---------- */
+
+function defaultState() {
+  const plannerCategoryId = "planner_locked";
+  return {
+    version: 3,
+    selectedCategoryId: plannerCategoryId,
+    categories: [
+      { id: plannerCategoryId, name: "Ez a hét", locked: true, items: [] },
+      { id: uid(), name: "DM", locked: false, items: [] },
+    ],
+    planner: {
+      weekOffset: 0,
+      weeks: {
+        // [weekStartISO]: { days: Array(7).fill({note:'', worked:false}) }
+      },
+    },
+  };
+}
+
+let state = loadState();
+migrateIfNeeded();
+saveState();
+
+/* ---------- Storage ---------- */
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState();
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : defaultState();
+  } catch {
+    return defaultState();
+  }
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function migrateIfNeeded() {
+  // Ensure planner exists
+  if (!state.planner) state.planner = { weekOffset: 0, weeks: {} };
+  if (typeof state.planner.weekOffset !== "number") state.planner.weekOffset = 0;
+  if (!state.planner.weeks || typeof state.planner.weeks !== "object") state.planner.weeks = {};
+
+  // Ensure locked planner category exists
+  const plannerId = "planner_locked";
+  let plannerCat = state.categories?.find(c => c.id === plannerId);
+  if (!plannerCat) {
+    if (!Array.isArray(state.categories)) state.categories = [];
+    state.categories.unshift({ id: plannerId, name: "Ez a hét", locked: true, items: [] });
+  } else {
+    plannerCat.locked = true;
+    plannerCat.name = "Ez a hét";
+    plannerCat.items = plannerCat.items || [];
+  }
+
+  // Ensure categories array
+  if (!Array.isArray(state.categories)) state.categories = [];
+
+  // Ensure items shape and stable colors
+  for (const cat of state.categories) {
+    if (!Array.isArray(cat.items)) cat.items = [];
+    for (const it of cat.items) {
+      if (!it.id) it.id = uid();
+      if (typeof it.done !== "boolean") it.done = !!it.done;
+      it.text = clampText(it.text);
+      if (!it.color) it.color = pickRandomPaletteColor();
+    }
+  }
+
+  // Ensure selectedCategoryId is valid
+  if (!state.categories.some(c => c.id === state.selectedCategoryId)) {
+    state.selectedCategoryId = plannerId;
+  }
+}
+
+/* ---------- UI Helpers ---------- */
+
+function currentCategory() {
+  return state.categories.find(c => c.id === state.selectedCategoryId);
+}
+
+function isPlannerSelected() {
+  const cat = currentCategory();
+  return !!cat?.locked;
+}
+
+function setView() {
+  const planner = isPlannerSelected();
+  els.plannerView.classList.toggle("hidden", !planner);
+  els.checklistView.classList.toggle("hidden", planner);
+
+  // Hide checklist actions when planner is selected
+  els.checklistActions.style.display = planner ? "none" : "grid";
+}
+
+function applyControlColors() {
+  // Colorize input/button cards subtly using palette (no gradients)
+  // Feel free to tweak, but stays flat and palette-based.
+  els.newCategory.style.background = "rgba(255,255,255,.06)";
+  els.newCategory.style.borderColor = "rgba(255,255,255,.12)";
+
+  els.itemInput.style.background = "rgba(255,255,255,.06)";
+  els.itemInput.style.borderColor = "rgba(255,255,255,.12)";
+
+  // Make Add button pop a bit (orange)
+  els.addBtn.style.background = "rgba(255,89,0,.22)";
+  els.addBtn.style.borderColor = "rgba(255,89,0,.35)";
+
+  // Action buttons slight accents
+  els.editCategory.style.background = "rgba(172,196,249,.18)";
+  els.deleteCategory.style.background = "rgba(255,176,214,.18)";
+  els.clearChecked.style.background = "rgba(134,152,108,.18)";
+}
+
+/* ---------- Category Select ---------- */
+
+function renderCategorySelect() {
+  els.categorySelect.innerHTML = "";
+
+  for (const cat of state.categories) {
+    const opt = document.createElement("option");
+    opt.value = cat.id;
+    opt.textContent = cat.locked ? "Ez a hét" : cat.name;
+    els.categorySelect.appendChild(opt);
+  }
+
+  els.categorySelect.value = state.selectedCategoryId;
+}
+
+/* ---------- Checklist ---------- */
+
+function renderChecklist() {
+  const cat = currentCategory();
+  if (!cat) return;
+
+  els.list.innerHTML = "";
+
+  // Ensure stable color fallback
+  for (const it of cat.items) {
+    if (!it.color) it.color = pickRandomPaletteColor();
+  }
+
+  cat.items.forEach((it, index) => {
+    const li = document.createElement("li");
+    li.dataset.id = it.id;
+
+    li.style.background = it.color;
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.className = "itemCheck";
+    checkbox.checked = !!it.done;
+
+    const text = document.createElement("div");
+    text.className = "itemText" + (it.done ? " done" : "");
+    text.textContent = it.text || "";
+
+    const del = document.createElement("button");
+    del.className = "itemDelete";
+    del.type = "button";
+    del.textContent = "Delete";
+
+    checkbox.addEventListener("change", () => {
+      it.done = checkbox.checked;
+      saveState();
+      renderChecklist();
     });
 
-    if (state.view === 'checklist') renderChecklist(main);
-    else renderPlanner(main);
-}
-
-// --- CHECKLIST LOGIC ---
-
-function renderChecklist(container) {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'checklist-container';
-
-    // 1. New Category Input
-    wrapper.innerHTML = `
-        <div class="new-cat-row">
-            <input type="text" class="cat-input" id="new-cat-name" placeholder="Új kategória...">
-            <button class="btn-add" onclick="addCategory()">+</button>
-        </div>
-    `;
-
-    // 2. Categories
-    state.checklist.forEach((cat, index) => {
-        const color = PALETTE[index % PALETTE.length];
-        const catDiv = document.createElement('div');
-        catDiv.className = 'category-card';
-        catDiv.style.backgroundColor = color;
-
-        // Header
-        let html = `<div class="cat-header">
-            <span>${cat.name}</span>
-            <button onclick="deleteCategory(${cat.id})">✕</button>
-        </div>`;
-
-        // Items
-        cat.items.forEach(item => {
-            html += `
-            <div class="todo-item ${item.checked ? 'checked' : ''}" onclick="toggleItem(${cat.id}, ${item.id})">
-                <div class="todo-check ${item.checked ? 'checked' : ''}">
-                    ${item.checked ? '✓' : ''}
-                </div>
-                <span class="todo-text">${item.text}</span>
-                <button onclick="event.stopPropagation(); deleteItem(${cat.id}, ${item.id})">✕</button>
-            </div>`;
-        });
-
-        // Add Item Input
-        html += `
-        <div class="add-item-row">
-            <input type="text" class="add-item-input" 
-                placeholder="+ Új tétel" 
-                onkeydown="if(event.key === 'Enter') addItem(${cat.id}, this.value)">
-        </div>`;
-
-        catDiv.innerHTML = html;
-        wrapper.appendChild(catDiv);
+    del.addEventListener("click", () => {
+      cat.items = cat.items.filter(x => x.id !== it.id);
+      saveState();
+      renderChecklist();
     });
 
-    container.appendChild(wrapper);
+    // Swipe-left to top
+    attachSwipeToTop(li, () => {
+      moveItemToTop(cat.id, it.id);
+    });
+
+    li.appendChild(checkbox);
+    li.appendChild(text);
+    li.appendChild(del);
+    els.list.appendChild(li);
+  });
+
+  // persist any newly assigned colors for old items
+  saveState();
 }
 
-// Checklist Actions
-window.addCategory = () => {
-    const input = document.getElementById('new-cat-name');
-    if (!input.value.trim()) return;
-    state.checklist.push({ id: Date.now(), name: input.value, items: [] });
-    input.value = '';
-    save(); render();
-};
+function moveItemToTop(categoryId, itemId) {
+  const cat = state.categories.find(c => c.id === categoryId);
+  if (!cat) return;
+  const idx = cat.items.findIndex(x => x.id === itemId);
+  if (idx <= 0) return; // already top or not found
+  const [it] = cat.items.splice(idx, 1);
+  cat.items.unshift(it);
+  saveState();
+  renderChecklist();
 
-window.deleteCategory = (id) => {
-    if(confirm('Biztos törlöd?')) {
-        state.checklist = state.checklist.filter(c => c.id !== id);
-        save(); render();
+  // flash outline feedback on moved item
+  requestAnimationFrame(() => {
+    const li = els.list.querySelector(`li[data-id="${itemId}"]`);
+    if (!li) return;
+    li.classList.add("movedFlash");
+    setTimeout(() => li.classList.remove("movedFlash"), 280);
+  });
+}
+
+/* Swipe logic: left swipe threshold triggers action */
+function attachSwipeToTop(el, onSwipeLeft) {
+  let startX = 0;
+  let startY = 0;
+  let dx = 0;
+  let dy = 0;
+  let tracking = false;
+
+  const THRESHOLD = 60;
+  const MAX_VERTICAL = 22;
+
+  el.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    startX = t.clientX;
+    startY = t.clientY;
+    dx = 0; dy = 0;
+    tracking = true;
+    el.classList.add("swiping");
+  }, { passive: true });
+
+  el.addEventListener("touchmove", (e) => {
+    if (!tracking) return;
+    const t = e.touches[0];
+    dx = t.clientX - startX;
+    dy = t.clientY - startY;
+
+    // only visually move on left swipe, small amount
+    if (dx < 0 && Math.abs(dy) < MAX_VERTICAL) {
+      el.style.transform = `translateX(${Math.max(dx, -90)}px)`;
+    } else {
+      el.style.transform = "";
     }
-};
+  }, { passive: true });
 
-window.addItem = (catId, text) => {
-    if (!text.trim()) return;
-    const cat = state.checklist.find(c => c.id === catId);
-    if (cat) {
-        cat.items.push({ id: Date.now(), text: text, checked: false });
-        save(); render();
+  el.addEventListener("touchend", () => {
+    if (!tracking) return;
+    tracking = false;
+    el.classList.remove("swiping");
+
+    const isLeft = dx < -THRESHOLD && Math.abs(dy) < MAX_VERTICAL;
+    el.style.transform = "";
+
+    if (isLeft) onSwipeLeft();
+  }, { passive: true });
+
+  el.addEventListener("touchcancel", () => {
+    tracking = false;
+    el.classList.remove("swiping");
+    el.style.transform = "";
+  }, { passive: true });
+}
+
+/* ---------- Planner ---------- */
+
+function weekStartForOffset(offset) {
+  const base = startOfWeekMonday(new Date());
+  return addDays(base, offset * 7);
+}
+
+function getWeekKey(offset) {
+  return isoDate(weekStartForOffset(offset));
+}
+
+function ensureWeek(offset) {
+  const key = getWeekKey(offset);
+  if (!state.planner.weeks[key]) {
+    state.planner.weeks[key] = {
+      days: Array.from({ length: 7 }, () => ({ note: "", worked: false }))
+    };
+  } else {
+    // sanitize
+    const w = state.planner.weeks[key];
+    if (!Array.isArray(w.days) || w.days.length !== 7) {
+      w.days = Array.from({ length: 7 }, () => ({ note: "", worked: false }));
     }
-};
-
-window.toggleItem = (catId, itemId) => {
-    const cat = state.checklist.find(c => c.id === catId);
-    const item = cat.items.find(i => i.id === itemId);
-    if (item) {
-        item.checked = !item.checked;
-        save(); render();
-    }
-};
-
-window.deleteItem = (catId, itemId) => {
-    const cat = state.checklist.find(c => c.id === catId);
-    cat.items = cat.items.filter(i => i.id !== itemId);
-    save(); render();
-};
-
-// --- PLANNER LOGIC ---
-
-function renderPlanner(container) {
-    const today = new Date();
-    // Calculate start of viewed week
-    let currentMonday = getMonday(new Date());
-    currentMonday.setDate(currentMonday.getDate() + (state.weekOffset * 7));
-
-    // Controls
-    const controls = document.createElement('div');
-    controls.className = 'planner-controls';
-    
-    // Simple date formatting manually
-    const endOfWeek = addDays(currentMonday, 6);
-    const dateRange = `${currentMonday.getMonth()+1}.${currentMonday.getDate()} - ${endOfWeek.getMonth()+1}.${endOfWeek.getDate()}`;
-
-    controls.innerHTML = `
-        <button onclick="changeWeek(-1)">Múlt hét</button>
-        <span>${dateRange}</span>
-        <button onclick="changeWeek(1)">Jövő hét</button>
-    `;
-    container.appendChild(controls);
-
-    // Days Loop
     for (let i = 0; i < 7; i++) {
-        const dayDate = addDays(currentMonday, i);
-        const dateKey = formatDateKey(dayDate);
-        const dayData = state.planner[dateKey] || { text: '', worked: false };
-        const isPast = dayDate.setHours(0,0,0,0) < today.setHours(0,0,0,0);
-        
-        const row = document.createElement('div');
-        row.className = 'day-row';
-        row.style.backgroundColor = PALETTE[i];
-        if (isPast) row.style.opacity = '0.6';
-
-        row.innerHTML = `
-            <div class="day-label">${WEEK_DAYS_HU[i]}</div>
-            <div class="day-content">
-                <input type="text" class="day-input" 
-                    value="${dayData.text}" 
-                    placeholder="Tervek..."
-                    oninput="updatePlanner('${dateKey}', 'text', this.value)">
-                
-                <div class="work-toggle ${dayData.worked ? 'active' : ''}" 
-                     onclick="toggleWork('${dateKey}')"></div>
-            </div>
-        `;
-        container.appendChild(row);
+      if (!w.days[i]) w.days[i] = { note: "", worked: false };
+      w.days[i].note = clampText(w.days[i].note);
+      if (typeof w.days[i].worked !== "boolean") w.days[i].worked = !!w.days[i].worked;
     }
+  }
+  return state.planner.weeks[key];
 }
 
-// Planner Actions
-window.changeWeek = (dir) => {
-    state.weekOffset += dir;
-    render();
-};
+function renderPlanner() {
+  const offset = state.planner.weekOffset || 0;
+  const weekStart = weekStartForOffset(offset);
+  const weekEnd = addDays(weekStart, 6);
 
-window.updatePlanner = (dateKey, field, value) => {
-    if (!state.planner[dateKey]) state.planner[dateKey] = {};
-    state.planner[dateKey][field] = value;
-    save();
-    // Note: No render() here to keep input focus active!
-};
+  els.plannerRange.textContent = `${formatMMDD(weekStart)} - ${formatMMDD(weekEnd)}`;
 
-window.toggleWork = (dateKey) => {
-    if (!state.planner[dateKey]) state.planner[dateKey] = {};
-    state.planner[dateKey].worked = !state.planner[dateKey].worked;
-    save(); render();
-};
+  if (offset === 0) els.plannerLabel.textContent = "Ez a hét";
+  else if (offset === 1) els.plannerLabel.textContent = "Jövő hét";
+  else if (offset === -1) els.plannerLabel.textContent = "Múlt hét";
+  else els.plannerLabel.textContent = offset > 0 ? `${offset} héttel előre` : `${Math.abs(offset)} héttel vissza`;
 
-// --- INITIALIZATION ---
+  const week = ensureWeek(offset);
+  els.plannerDays.innerHTML = "";
 
-document.getElementById('nav-checklist').addEventListener('click', () => {
-    state.view = 'checklist'; render();
+  const today = new Date();
+  const todayKey = isoDate(today);
+
+  for (let i = 0; i < 7; i++) {
+    const d = addDays(weekStart, i);
+    const dKey = isoDate(d);
+
+    const card = document.createElement("div");
+    card.className = "dayCard";
+    card.style.background = WEEKDAY[i].color;
+
+    // highlight only when viewing current week and date matches
+    if (offset === 0 && dKey === todayKey) {
+      card.classList.add("today");
+    }
+
+    const left = document.createElement("div");
+    left.className = "dayLeft";
+    left.textContent = WEEKDAY[i].short;
+
+    const mid = document.createElement("div");
+    mid.className = "dayMid";
+
+    const input = document.createElement("textarea");
+    input.className = "dayInput";
+    input.rows = 1;
+    input.placeholder = "Tervek…";
+
+    const safeNote = clampText(week.days[i].note);
+    input.value = safeNote;
+
+    // auto-expand (starts 1 line)
+    const autoSize = () => {
+      input.style.height = "0px";
+      input.style.height = Math.min(input.scrollHeight, 220) + "px";
+    };
+    requestAnimationFrame(autoSize);
+
+    input.addEventListener("input", () => {
+      week.days[i].note = clampText(input.value);
+      saveState();
+      autoSize();
+    });
+
+    mid.appendChild(input);
+
+    const right = document.createElement("div");
+    right.className = "dayRight";
+
+    const dot = document.createElement("button");
+    dot.type = "button";
+    dot.className = "workDot" + (week.days[i].worked ? " on" : "");
+    dot.title = "Dolgoztam";
+
+    dot.addEventListener("click", () => {
+      week.days[i].worked = !week.days[i].worked;
+      saveState();
+      renderPlanner();
+    });
+
+    right.appendChild(dot);
+
+    card.appendChild(left);
+    card.appendChild(mid);
+    card.appendChild(right);
+
+    els.plannerDays.appendChild(card);
+  }
+
+  saveState();
+}
+
+/* ---------- Modal ---------- */
+
+let modalMode = "new"; // "new" | "edit"
+let editCategoryId = null;
+
+function openModal(mode, categoryId = null) {
+  modalMode = mode;
+  editCategoryId = categoryId;
+
+  els.modalName.value = "";
+  els.modalTitle.textContent = mode === "new" ? "Új kategória" : "Kategória szerkesztése";
+
+  if (mode === "edit") {
+    const cat = state.categories.find(c => c.id === categoryId);
+    if (cat) els.modalName.value = cat.name || "";
+  }
+
+  els.modalOverlay.classList.remove("hidden");
+  els.modalOverlay.setAttribute("aria-hidden", "false");
+  setTimeout(() => els.modalName.focus(), 50);
+}
+
+function closeModal() {
+  els.modalOverlay.classList.add("hidden");
+  els.modalOverlay.setAttribute("aria-hidden", "true");
+}
+
+/* ---------- Wiring ---------- */
+
+function refreshUI() {
+  migrateIfNeeded();
+  renderCategorySelect();
+  setView();
+  applyControlColors();
+
+  if (isPlannerSelected()) renderPlanner();
+  else renderChecklist();
+
+  // Disable edit/delete for planner category
+  const cat = currentCategory();
+  const locked = !!cat?.locked;
+  els.editCategory.disabled = locked;
+  els.deleteCategory.disabled = locked;
+}
+
+els.categorySelect.addEventListener("change", () => {
+  state.selectedCategoryId = els.categorySelect.value;
+  saveState();
+  refreshUI();
 });
-document.getElementById('nav-planner').addEventListener('click', () => {
-    state.view = 'planner'; render();
+
+els.newCategory.addEventListener("click", () => {
+  openModal("new");
 });
 
-// Start app
-render();
+els.editCategory.addEventListener("click", () => {
+  const cat = currentCategory();
+  if (!cat || cat.locked) return;
+  openModal("edit", cat.id);
+});
+
+els.deleteCategory.addEventListener("click", () => {
+  const cat = currentCategory();
+  if (!cat || cat.locked) return;
+
+  // delete
+  state.categories = state.categories.filter(c => c.id !== cat.id);
+
+  // fallback selection: planner
+  state.selectedCategoryId = "planner_locked";
+  saveState();
+  refreshUI();
+});
+
+els.clearChecked.addEventListener("click", () => {
+  const cat = currentCategory();
+  if (!cat || cat.locked) return;
+  cat.items = cat.items.filter(it => !it.done);
+  saveState();
+  renderChecklist();
+});
+
+els.itemForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const cat = currentCategory();
+  if (!cat || cat.locked) return;
+
+  const text = clampText(els.itemInput.value).trim();
+  if (!text) return;
+
+  cat.items.unshift({
+    id: uid(),
+    text,
+    done: false,
+    color: pickRandomPaletteColor(), // RANDOM from palette, stored per item
+  });
+
+  els.itemInput.value = "";
+  saveState();
+  renderChecklist();
+});
+
+els.modalClose.addEventListener("click", closeModal);
+els.modalCancel.addEventListener("click", closeModal);
+els.modalOverlay.addEventListener("click", (e) => {
+  if (e.target === els.modalOverlay) closeModal();
+});
+
+els.modalSave.addEventListener("click", () => {
+  const name = clampText(els.modalName.value).trim();
+  if (!name) return;
+
+  if (modalMode === "new") {
+    state.categories.push({
+      id: uid(),
+      name,
+      locked: false,
+      items: [],
+    });
+    state.selectedCategoryId = state.categories[state.categories.length - 1].id;
+  } else if (modalMode === "edit" && editCategoryId) {
+    const cat = state.categories.find(c => c.id === editCategoryId);
+    if (cat && !cat.locked) cat.name = name;
+  }
+
+  saveState();
+  closeModal();
+  refreshUI();
+});
+
+/* Planner nav */
+els.plannerPrev.addEventListener("click", () => {
+  state.planner.weekOffset = (state.planner.weekOffset || 0) - 1;
+  saveState();
+  renderPlanner();
+});
+els.plannerNext.addEventListener("click", () => {
+  state.planner.weekOffset = (state.planner.weekOffset || 0) + 1;
+  saveState();
+  renderPlanner();
+});
+els.plannerToday.addEventListener("click", () => {
+  state.planner.weekOffset = 0;
+  saveState();
+  renderPlanner();
+});
+
+/* Service worker */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
+  });
+}
+
+/* Initial */
+refreshUI();

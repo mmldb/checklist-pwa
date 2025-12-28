@@ -1,40 +1,81 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="hu">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OD Jegyzetek</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="manifest" href="manifest.webmanifest">
-    <meta name="theme-color" content="#121212">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#0D0D0D" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>OD Jegyzetek 3.0</title>
 </head>
 <body>
-    <div id="app">
-        <header class="app-header">
-            <h1 class="app-title">OD Jegyzetek 3.0</h1>
-            <div id="header-actions"></div>
-        </header>
-
-        <main id="main-content"></main>
-
-        <nav class="bottom-nav">
-            <button class="nav-item" data-tab="checklist" id="nav-checklist">
-                <span>✓</span>
-            </button>
-            <button class="nav-item" data-tab="planner" id="nav-planner">
-                <span>📅</span>
-            </button>
-        </nav>
+  <header class="appHeader">
+    <div class="titleRow">
+      <h1>OD Jegyzetek 3.0</h1>
     </div>
 
-    <script src="app.js"></script>
-    <script>
-        // Register Service Worker if you have one
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
-        }
-    </script>
+    <div class="topRow">
+      <select id="categorySelect" aria-label="Kategória"></select>
+      <button id="newCategory" type="button" class="plusBtn" aria-label="Új kategória">+</button>
+    </div>
+
+    <div class="actionRow actionRow3" id="checklistActions">
+      <button id="editCategory" type="button" class="chipBtn" aria-label="Szerkeszt">...</button>
+      <button id="deleteCategory" type="button" class="chipBtn danger" aria-label="Töröl">X</button>
+      <button id="clearChecked" type="button" class="chipBtn" aria-label="Kipipáltak törlése">///</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Checklist -->
+    <section id="checklistView">
+      <form id="itemForm" class="addRow">
+        <input id="itemInput" placeholder="Új tétel" autocomplete="off" />
+        <button type="submit" class="primaryBtn" id="addBtn">Add</button>
+      </form>
+      <ul id="list"></ul>
+    </section>
+
+    <!-- Planner -->
+    <section id="plannerView" class="hidden">
+      <div class="plannerTopBar">
+        <button id="plannerPrev" type="button" class="weekBtn">Múlt hét</button>
+
+        <div class="rangeBlock">
+          <div id="plannerRange" class="rangeText">--</div>
+          <div id="plannerLabel" class="rangeLabel">Ez a hét</div>
+          <button id="plannerToday" type="button" class="todayBtn">Ma</button>
+        </div>
+
+        <button id="plannerNext" type="button" class="weekBtn">Jövő hét</button>
+      </div>
+
+      <div id="plannerDays" class="plannerDays"></div>
+    </section>
+  </main>
+
+  <!-- Modal: add/edit category -->
+  <div id="modalOverlay" class="modalOverlay hidden" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modalHeader">
+        <h2 id="modalTitle">Kategória</h2>
+        <button id="modalClose" type="button" class="iconBtn" aria-label="Bezár">✕</button>
+      </div>
+
+      <div class="modalBody">
+        <label class="field">
+          <span>Név</span>
+          <input id="modalName" type="text" placeholder="pl. Ovi, Azúr" />
+        </label>
+      </div>
+
+      <div class="modalFooter">
+        <button id="modalCancel" type="button" class="chipBtn">Mégse</button>
+        <button id="modalSave" type="button" class="primaryBtn">Mentés</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>
