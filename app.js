@@ -1,9 +1,14 @@
 /* OD Jegyzetek 3.0 - Local-first
-   - Planner: fixed palette per weekday, week nav + today button + today highlight
-   - Checklist: random palette color per item (stored), swipe-left moves item to top
+   Fixes:
+   - Checklist always renders correctly on refresh & category switch
+   - Planner shows current week immediately on selecting _Tervező
+   - Planner day labels like HÉ.22 (leading zero)
+   - Freelance indicator ON = black
+   - Keep random checklist colors (palette-only) stored per item
+   - Swipe-left moves checklist item to top
 */
 
-const STORAGE_KEY = "od_jegyzetek_v3";
+const STORAGE_KEY = "od_jegyzetek_v3_2";
 
 const PALETTE = [
   "#C8C8C8",
@@ -17,13 +22,14 @@ const PALETTE = [
   "#E7E7E7",
 ];
 
+// Fixed weekday colors/order
 const WEEKDAY = [
   { short: "HÉ",  color: "#FF5900" },
   { short: "KE",  color: "#FAB42A" },
-  { short: "SZE", color: "#86986C" },
+  { short: "SZ",  color: "#86986C" },
   { short: "CS",  color: "#ACC4F9" },
   { short: "PÉ",  color: "#0C76FF" },
-  { short: "SZO", color: "#FFB0D6" },
+  { short: "SZ",  color: "#FFB0D6" },
   { short: "VA",  color: "#C8C8C8" },
 ];
 
@@ -42,6 +48,7 @@ const els = {
 
   itemForm: $("itemForm"),
   itemInput: $("itemInput"),
+  addBtn: $("addBtn"),
   list: $("list"),
 
   plannerPrev: $("plannerPrev"),
@@ -71,13 +78,16 @@ function clampText(v) {
 }
 
 function pickRandomPaletteColor() {
-  // Avoid too-many grays? keep as-is for now per request
   return PALETTE[Math.floor(Math.random() * PALETTE.length)];
 }
 
+function dd2(n) {
+  return String(n).padStart(2, "0");
+}
+
 function formatMMDD(d) {
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
+  const m = dd2(d.getMonth() + 1);
+  const day = dd2(d.getDate());
   return `${m}.${day}`;
 }
 
@@ -102,10 +112,6 @@ function isoDate(d) {
   return x.toISOString().slice(0,10);
 }
 
-function deepCopy(obj) {
-  return JSON.parse(JSON.stringify(obj));
-}
-
 /* ---------- State ---------- */
 
 function defaultState() {
@@ -114,14 +120,12 @@ function defaultState() {
     version: 3,
     selectedCategoryId: plannerCategoryId,
     categories: [
-      { id: plannerCategoryId, name: "Ez a hét", locked: true, items: [] },
+      { id: plannerCategoryId, name: "_Tervező", locked: true, items: [] },
       { id: uid(), name: "DM", locked: false, items: [] },
     ],
     planner: {
       weekOffset: 0,
-      weeks: {
-        // [weekStartISO]: { days: Array(7).fill({note:'', worked:false}) }
-      },
+      weeks: {}
     },
   };
 }
@@ -148,27 +152,22 @@ function saveState() {
 }
 
 function migrateIfNeeded() {
-  // Ensure planner exists
   if (!state.planner) state.planner = { weekOffset: 0, weeks: {} };
   if (typeof state.planner.weekOffset !== "number") state.planner.weekOffset = 0;
   if (!state.planner.weeks || typeof state.planner.weeks !== "object") state.planner.weeks = {};
 
-  // Ensure locked planner category exists
   const plannerId = "planner_locked";
-  let plannerCat = state.categories?.find(c => c.id === plannerId);
-  if (!plannerCat) {
-    if (!Array.isArray(state.categories)) state.categories = [];
-    state.categories.unshift({ id: plannerId, name: "Ez a hét", locked: true, items: [] });
-  } else {
-    plannerCat.locked = true;
-    plannerCat.name = "Ez a hét";
-    plannerCat.items = plannerCat.items || [];
-  }
-
-  // Ensure categories array
   if (!Array.isArray(state.categories)) state.categories = [];
 
-  // Ensure items shape and stable colors
+  let plannerCat = state.categories.find(c => c.id === plannerId);
+  if (!plannerCat) {
+    state.categories.unshift({ id: plannerId, name: "_Tervező", locked: true, items: [] });
+  } else {
+    plannerCat.locked = true;
+    plannerCat.name = "_Tervező";
+    if (!Array.isArray(plannerCat.items)) plannerCat.items = [];
+  }
+
   for (const cat of state.categories) {
     if (!Array.isArray(cat.items)) cat.items = [];
     for (const it of cat.items) {
@@ -179,13 +178,12 @@ function migrateIfNeeded() {
     }
   }
 
-  // Ensure selectedCategoryId is valid
   if (!state.categories.some(c => c.id === state.selectedCategoryId)) {
     state.selectedCategoryId = plannerId;
   }
 }
 
-/* ---------- UI Helpers ---------- */
+/* ---------- Helpers ---------- */
 
 function currentCategory() {
   return state.categories.find(c => c.id === state.selectedCategoryId);
@@ -196,46 +194,21 @@ function isPlannerSelected() {
   return !!cat?.locked;
 }
 
-function setView() {
-  const planner = isPlannerSelected();
-  els.plannerView.classList.toggle("hidden", !planner);
-  els.checklistView.classList.toggle("hidden", planner);
-
-  // Hide checklist actions when planner is selected
-  els.checklistActions.style.display = planner ? "none" : "grid";
-}
-
-function applyControlColors() {
-  // Colorize input/button cards subtly using palette (no gradients)
-  // Feel free to tweak, but stays flat and palette-based.
-  els.newCategory.style.background = "rgba(255,255,255,.06)";
-  els.newCategory.style.borderColor = "rgba(255,255,255,.12)";
-
-  els.itemInput.style.background = "rgba(255,255,255,.06)";
-  els.itemInput.style.borderColor = "rgba(255,255,255,.12)";
-
-  // Make Add button pop a bit (orange)
-  els.addBtn.style.background = "rgba(255,89,0,.22)";
-  els.addBtn.style.borderColor = "rgba(255,89,0,.35)";
-
-  // Action buttons slight accents
-  els.editCategory.style.background = "rgba(172,196,249,.18)";
-  els.deleteCategory.style.background = "rgba(255,176,214,.18)";
-  els.clearChecked.style.background = "rgba(134,152,108,.18)";
-}
-
 /* ---------- Category Select ---------- */
 
 function renderCategorySelect() {
   els.categorySelect.innerHTML = "";
-
   for (const cat of state.categories) {
     const opt = document.createElement("option");
     opt.value = cat.id;
-    opt.textContent = cat.locked ? "Ez a hét" : cat.name;
+    opt.textContent = cat.locked ? "_Tervező" : cat.name;
     els.categorySelect.appendChild(opt);
   }
 
+  // Keep select and state in sync
+  if (!state.categories.some(c => c.id === state.selectedCategoryId)) {
+    state.selectedCategoryId = "planner_locked";
+  }
   els.categorySelect.value = state.selectedCategoryId;
 }
 
@@ -243,19 +216,18 @@ function renderCategorySelect() {
 
 function renderChecklist() {
   const cat = currentCategory();
-  if (!cat) return;
+  if (!cat || cat.locked) return;
 
   els.list.innerHTML = "";
 
-  // Ensure stable color fallback
+  // Assign stable colors to old items
   for (const it of cat.items) {
     if (!it.color) it.color = pickRandomPaletteColor();
   }
 
-  cat.items.forEach((it, index) => {
+  cat.items.forEach((it) => {
     const li = document.createElement("li");
     li.dataset.id = it.id;
-
     li.style.background = it.color;
 
     const checkbox = document.createElement("input");
@@ -284,10 +256,7 @@ function renderChecklist() {
       renderChecklist();
     });
 
-    // Swipe-left to top
-    attachSwipeToTop(li, () => {
-      moveItemToTop(cat.id, it.id);
-    });
+    attachSwipeToTop(li, () => moveItemToTop(cat.id, it.id));
 
     li.appendChild(checkbox);
     li.appendChild(text);
@@ -295,7 +264,6 @@ function renderChecklist() {
     els.list.appendChild(li);
   });
 
-  // persist any newly assigned colors for old items
   saveState();
 }
 
@@ -303,13 +271,14 @@ function moveItemToTop(categoryId, itemId) {
   const cat = state.categories.find(c => c.id === categoryId);
   if (!cat) return;
   const idx = cat.items.findIndex(x => x.id === itemId);
-  if (idx <= 0) return; // already top or not found
+  if (idx <= 0) return;
+
   const [it] = cat.items.splice(idx, 1);
   cat.items.unshift(it);
+
   saveState();
   renderChecklist();
 
-  // flash outline feedback on moved item
   requestAnimationFrame(() => {
     const li = els.list.querySelector(`li[data-id="${itemId}"]`);
     if (!li) return;
@@ -318,14 +287,9 @@ function moveItemToTop(categoryId, itemId) {
   });
 }
 
-/* Swipe logic: left swipe threshold triggers action */
+/* Swipe left to top */
 function attachSwipeToTop(el, onSwipeLeft) {
-  let startX = 0;
-  let startY = 0;
-  let dx = 0;
-  let dy = 0;
-  let tracking = false;
-
+  let startX = 0, startY = 0, dx = 0, dy = 0, tracking = false;
   const THRESHOLD = 60;
   const MAX_VERTICAL = 22;
 
@@ -345,7 +309,6 @@ function attachSwipeToTop(el, onSwipeLeft) {
     dx = t.clientX - startX;
     dy = t.clientY - startY;
 
-    // only visually move on left swipe, small amount
     if (dx < 0 && Math.abs(dy) < MAX_VERTICAL) {
       el.style.transform = `translateX(${Math.max(dx, -90)}px)`;
     } else {
@@ -360,7 +323,6 @@ function attachSwipeToTop(el, onSwipeLeft) {
 
     const isLeft = dx < -THRESHOLD && Math.abs(dy) < MAX_VERTICAL;
     el.style.transform = "";
-
     if (isLeft) onSwipeLeft();
   }, { passive: true });
 
@@ -389,7 +351,6 @@ function ensureWeek(offset) {
       days: Array.from({ length: 7 }, () => ({ note: "", worked: false }))
     };
   } else {
-    // sanitize
     const w = state.planner.weeks[key];
     if (!Array.isArray(w.days) || w.days.length !== 7) {
       w.days = Array.from({ length: 7 }, () => ({ note: "", worked: false }));
@@ -418,25 +379,24 @@ function renderPlanner() {
   const week = ensureWeek(offset);
   els.plannerDays.innerHTML = "";
 
-  const today = new Date();
-  const todayKey = isoDate(today);
+  const todayKey = isoDate(new Date());
 
   for (let i = 0; i < 7; i++) {
     const d = addDays(weekStart, i);
+    const dayNum = dd2(d.getDate());
     const dKey = isoDate(d);
 
     const card = document.createElement("div");
     card.className = "dayCard";
     card.style.background = WEEKDAY[i].color;
 
-    // highlight only when viewing current week and date matches
     if (offset === 0 && dKey === todayKey) {
       card.classList.add("today");
     }
 
     const left = document.createElement("div");
     left.className = "dayLeft";
-    left.textContent = WEEKDAY[i].short;
+    left.textContent = `${WEEKDAY[i].short}.${dayNum}`;
 
     const mid = document.createElement("div");
     mid.className = "dayMid";
@@ -445,11 +405,8 @@ function renderPlanner() {
     input.className = "dayInput";
     input.rows = 1;
     input.placeholder = "Tervek…";
+    input.value = clampText(week.days[i].note);
 
-    const safeNote = clampText(week.days[i].note);
-    input.value = safeNote;
-
-    // auto-expand (starts 1 line)
     const autoSize = () => {
       input.style.height = "0px";
       input.style.height = Math.min(input.scrollHeight, 220) + "px";
@@ -492,7 +449,7 @@ function renderPlanner() {
 
 /* ---------- Modal ---------- */
 
-let modalMode = "new"; // "new" | "edit"
+let modalMode = "new";
 let editCategoryId = null;
 
 function openModal(mode, categoryId = null) {
@@ -517,23 +474,41 @@ function closeModal() {
   els.modalOverlay.setAttribute("aria-hidden", "true");
 }
 
-/* ---------- Wiring ---------- */
+/* ---------- View / Refresh ---------- */
+
+function setView() {
+  const planner = isPlannerSelected();
+  els.plannerView.classList.toggle("hidden", !planner);
+  els.checklistView.classList.toggle("hidden", planner);
+  els.checklistActions.style.display = planner ? "none" : "grid";
+
+  // When entering planner, auto-jump to current week
+  if (planner) {
+    state.planner.weekOffset = 0;
+    saveState();
+  }
+}
 
 function refreshUI() {
   migrateIfNeeded();
   renderCategorySelect();
+
+  // Ensure state matches select (prevents stale render edge cases)
+  state.selectedCategoryId = els.categorySelect.value;
+  saveState();
+
   setView();
-  applyControlColors();
 
   if (isPlannerSelected()) renderPlanner();
   else renderChecklist();
 
-  // Disable edit/delete for planner category
   const cat = currentCategory();
   const locked = !!cat?.locked;
   els.editCategory.disabled = locked;
   els.deleteCategory.disabled = locked;
 }
+
+/* ---------- Events ---------- */
 
 els.categorySelect.addEventListener("change", () => {
   state.selectedCategoryId = els.categorySelect.value;
@@ -541,9 +516,7 @@ els.categorySelect.addEventListener("change", () => {
   refreshUI();
 });
 
-els.newCategory.addEventListener("click", () => {
-  openModal("new");
-});
+els.newCategory.addEventListener("click", () => openModal("new"));
 
 els.editCategory.addEventListener("click", () => {
   const cat = currentCategory();
@@ -555,10 +528,7 @@ els.deleteCategory.addEventListener("click", () => {
   const cat = currentCategory();
   if (!cat || cat.locked) return;
 
-  // delete
   state.categories = state.categories.filter(c => c.id !== cat.id);
-
-  // fallback selection: planner
   state.selectedCategoryId = "planner_locked";
   saveState();
   refreshUI();
@@ -584,7 +554,7 @@ els.itemForm.addEventListener("submit", (e) => {
     id: uid(),
     text,
     done: false,
-    color: pickRandomPaletteColor(), // RANDOM from palette, stored per item
+    color: pickRandomPaletteColor(),
   });
 
   els.itemInput.value = "";
@@ -603,12 +573,7 @@ els.modalSave.addEventListener("click", () => {
   if (!name) return;
 
   if (modalMode === "new") {
-    state.categories.push({
-      id: uid(),
-      name,
-      locked: false,
-      items: [],
-    });
+    state.categories.push({ id: uid(), name, locked: false, items: [] });
     state.selectedCategoryId = state.categories[state.categories.length - 1].id;
   } else if (modalMode === "edit" && editCategoryId) {
     const cat = state.categories.find(c => c.id === editCategoryId);
