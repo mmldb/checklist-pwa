@@ -252,6 +252,12 @@ li.movedFlash{
   outline-offset: -3px;
 }
 
+/* ✅ Past days: slightly desaturated/grey text (still readable) */
+.dayCard.past .dayLeft,
+.dayCard.past .dayInput{
+  color: rgba(0,0,0,.55);
+}
+
 /* Left label contains "HÉ.22" etc */
 .dayLeft{
   height: 100%;

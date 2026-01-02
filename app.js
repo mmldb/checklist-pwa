@@ -1,11 +1,9 @@
 /* OD Jegyzetek 3.0 - Local-first
    Fixes:
-   - Checklist always renders correctly on refresh & category switch
-   - Planner shows current week immediately on selecting _Tervező
-   - Planner day labels like HÉ.22 (leading zero)
-   - Freelance indicator ON = black
-   - Keep random checklist colors (palette-only) stored per item
-   - Swipe-left moves checklist item to top
+   - Confirm before deleting a category (X button)
+   - Planner: past days text slightly desaturated (still readable)
+   - Keep: random checklist colors (palette-only) stored per item
+   - Keep: swipe-left moves checklist item to top
 */
 
 const STORAGE_KEY = "od_jegyzetek_v3_2";
@@ -112,6 +110,11 @@ function isoDate(d) {
   return x.toISOString().slice(0,10);
 }
 
+function dateKeyToNum(iso) {
+  // ISO YYYY-MM-DD -> comparable number YYYYMMDD
+  return Number(iso.replaceAll("-", ""));
+}
+
 /* ---------- State ---------- */
 
 function defaultState() {
@@ -205,7 +208,6 @@ function renderCategorySelect() {
     els.categorySelect.appendChild(opt);
   }
 
-  // Keep select and state in sync
   if (!state.categories.some(c => c.id === state.selectedCategoryId)) {
     state.selectedCategoryId = "planner_locked";
   }
@@ -220,7 +222,6 @@ function renderChecklist() {
 
   els.list.innerHTML = "";
 
-  // Assign stable colors to old items
   for (const it of cat.items) {
     if (!it.color) it.color = pickRandomPaletteColor();
   }
@@ -379,19 +380,27 @@ function renderPlanner() {
   const week = ensureWeek(offset);
   els.plannerDays.innerHTML = "";
 
-  const todayKey = isoDate(new Date());
+  const todayIso = isoDate(new Date());
+  const todayNum = dateKeyToNum(todayIso);
 
   for (let i = 0; i < 7; i++) {
     const d = addDays(weekStart, i);
     const dayNum = dd2(d.getDate());
-    const dKey = isoDate(d);
+    const dIso = isoDate(d);
+    const dNum = dateKeyToNum(dIso);
 
     const card = document.createElement("div");
     card.className = "dayCard";
     card.style.background = WEEKDAY[i].color;
 
-    if (offset === 0 && dKey === todayKey) {
+    // Today highlight (current week only)
+    if (offset === 0 && dIso === todayIso) {
       card.classList.add("today");
+    }
+
+    // Past day desaturate (only current week, and strictly before today)
+    if (offset === 0 && dNum < todayNum) {
+      card.classList.add("past");
     }
 
     const left = document.createElement("div");
@@ -493,7 +502,7 @@ function refreshUI() {
   migrateIfNeeded();
   renderCategorySelect();
 
-  // Ensure state matches select (prevents stale render edge cases)
+  // Keep state and select in sync
   state.selectedCategoryId = els.categorySelect.value;
   saveState();
 
@@ -527,6 +536,10 @@ els.editCategory.addEventListener("click", () => {
 els.deleteCategory.addEventListener("click", () => {
   const cat = currentCategory();
   if (!cat || cat.locked) return;
+
+  // ✅ confirmation (prevents accidental deletion)
+  const ok = confirm(`Biztos törlöd a kategóriát?\n\n"${cat.name}"\n\n(Ezzel az összes tétel is törlődik.)`);
+  if (!ok) return;
 
   state.categories = state.categories.filter(c => c.id !== cat.id);
   state.selectedCategoryId = "planner_locked";
